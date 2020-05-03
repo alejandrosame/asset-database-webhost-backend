@@ -1,6 +1,7 @@
 {
     "require": {
         "league/flysystem": "^1.0",
-        "firebase/php-jwt": "^5.2"
+        "firebase/php-jwt": "^5.2",
+        "imagecow/imagecow": "^2.4"
     }
 }

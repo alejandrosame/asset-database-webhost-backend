@@ -1,5 +1,9 @@
 <?php
 include_once '../config/filesystem.php';
+
+require __DIR__ . '/../../../vendor/autoload.php';
+use Imagecow\Image;
+
 define('MB', 1048576);
 
 header("Access-Control-Allow-Origin: http://localhost/api/asset/");
@@ -25,7 +29,7 @@ if ($check == false) {
     );
 }
 // Check if file already exists
-if ($uploadOk == 1 && $filesystem->has($target_file)) {
+if ($uploadOk == 1 && $filesystem->has(DIRECTORY_SEPARATOR . "thumb" . DIRECTORY_SEPARATOR . $target_file)) {
     $uploadOk = 0;
     http_response_code(200);
 
@@ -61,14 +65,26 @@ if ($uploadOk == 1 && $imageFileType != "png") {
 
 if ($uploadOk == 1) {
     try {
+        $fileName = $_FILES[$uploadName]['name'];
         $stream = fopen($_FILES[$uploadName]['tmp_name'], 'r+');
-        $filesystem->writeStream(
-            $_FILES[$uploadName]['name'],
-            $stream
-        );
+        $imageContents = stream_get_contents($stream);
+
         if (is_resource($stream)) {
             fclose($stream);
         }
+
+        $thumbnail = Image::fromString($imageContents);
+        $thumbnail->resize(100, 100);
+
+        $filesystem->write(
+            DIRECTORY_SEPARATOR . "thumb" . DIRECTORY_SEPARATOR . $fileName,
+            $thumbnail->getString()
+        );
+
+        $filesystem->write(
+            DIRECTORY_SEPARATOR . "fullres" . DIRECTORY_SEPARATOR . $fileName,
+            $imageContents
+        );
 
         http_response_code(200);
 
