@@ -33,6 +33,36 @@ class Image
         return $stmt;
     }
 
+    public function readOne()
+    {
+        $query = "SELECT id, filename, hash, created, updated
+            FROM
+                " . $this->table_name . "
+            WHERE id = :id
+            LIMIT 0,1";
+
+        $this->id=htmlspecialchars(strip_tags($this->id));
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":id", $this->id);
+        $stmt->execute();
+
+        $num = $stmt->rowCount();
+
+        if ($num>0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $this->id = $row['id'];
+            $this->filename = $row['filename'];
+            $this->hash = $row['hash'];
+            $this->created = $row['created'];
+            $this->updated = $row['updated'];
+
+            return true;
+        }
+        return false;
+    }
+
     public function hashExists()
     {
         $query = "SELECT id, filename, hash, created, updated
