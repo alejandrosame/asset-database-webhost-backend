@@ -17,6 +17,11 @@ class Product
         $this->conn = $db;
     }
 
+    public function table_name()
+    {
+        return $this->table_name;
+    }
+
     public function read()
     {
         $query = "SELECT id, name, created, updated
