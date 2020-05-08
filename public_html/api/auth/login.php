@@ -6,16 +6,29 @@ require __DIR__ . '/../../../vendor/autoload.php';
 use \Firebase\JWT\JWT;
 
 // required headers
-header("Access-Control-Allow-Origin: http://localhost/api/auth/");
-header("Content-Type: application/json; charset=UTF-8");
+// Allow from any origin
+if (isset($_SERVER["HTTP_ORIGIN"])) {
+    //header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Origin: *");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
+    exit(0);
+}
+
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Max-Age: 3600");
 
 $database = new Database();
 $db = $database->getConnection();
 
 $data = json_decode(file_get_contents("php://input"));
+
+error_log(file_get_contents("php://input"));
 
 $user = new User($db);
 $user->email = $data->email;
@@ -39,20 +52,16 @@ if ($email_exists && $result) {
        )
     );
 
-    http_response_code(200);
-
     $jwt = JWT::encode($token, $key);
+    http_response_code(200);
     echo json_encode(
         array(
-                "message" => "Successful login.",
-                "jwt" => $jwt
+                "idToken" => $jwt,
+                "localId" => $user->id,
+                "expiresIn" => ($exp - $iat) + 1000
             )
         );
 } else {
-
-    // set response code
     http_response_code(401);
-
-    // tell the user login failed
-    echo json_encode(array("message" => "Login failed."));
+    echo json_encode(array("error" => array("message" => "Wrong credentials.")));
 }
