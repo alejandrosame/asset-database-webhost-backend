@@ -13,31 +13,24 @@ $tag = new Tag($db);
 $stmt = $tag->read();
 $num = $stmt->rowCount();
 
-if ($num>0) {
-    $arr=array();
-    $arr["records"]=array();
+$arr=array();
+$arr["tags"]=array();
 
-    // retrieve our table contents
-    // fetch() is faster than fetchAll()
-    // http://stackoverflow.com/questions/2770630/pdofetchall-vs-pdofetch-in-a-loop
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        extract($row);
+// retrieve our table contents
+// fetch() is faster than fetchAll()
+// http://stackoverflow.com/questions/2770630/pdofetchall-vs-pdofetch-in-a-loop
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    extract($row);
 
-        $user_item=array(
-            "id" => $id,
-            "name" => $name,
-            "created" => $created,
-            "updated" => $updated
-        );
-
-        array_push($arr["records"], $item);
-    }
-
-    http_response_code(200);
-    echo json_encode($arr);
-} else {
-    http_response_code(404);
-    echo json_encode(
-        array("message" => "No tags found.")
+    $item=array(
+        "id" => $id,
+        "name" => $name,
+        "created" => $created,
+        "updated" => $updated
     );
+
+    array_push($arr["tags"], $item);
 }
+
+http_response_code(200);
+echo json_encode($arr);
