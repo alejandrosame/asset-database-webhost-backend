@@ -2,11 +2,23 @@
 include_once '../config/database.php';
 include_once '../objects/tag.php';
 
-header("Access-Control-Allow-Origin: http://localhost/api/asset/");
-header("Content-Type: application/json; charset=UTF-8");
+// required headers
+// Allow from any origin
+if (isset($_SERVER["HTTP_ORIGIN"])) {
+    //header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Origin: *");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
+    exit(0);
+}
+
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Max-Age: 3600");
 
 $database = new Database();
 $db = $database->getConnection();
@@ -21,7 +33,10 @@ if (
 
     if ($tag->create()) {
         http_response_code(201);
-        echo json_encode(array("message" => "Tag was created."));
+        echo json_encode(array(
+          "id" => $tag->id,
+          "name" => $tag->name
+        ));
     } else {
         http_response_code(503);
         echo json_encode(array("message" => "Unable to create tag."));
