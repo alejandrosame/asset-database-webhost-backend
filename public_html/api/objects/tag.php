@@ -56,4 +56,20 @@ class Tag
 
         return false;
     }
+
+    public function delete()
+    {
+        $this->id=htmlspecialchars(strip_tags($this->id));
+
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+
+        return false;
+    }
 }
