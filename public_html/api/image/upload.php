@@ -64,7 +64,6 @@ if (is_resource($stream)) {
 $hash = sha1($imageContents);
 
 // Check here if file already exists using hash
-$image->filename = $target_file;
 $image->hash = $hash;
 
 if ($image->hashExists()) {

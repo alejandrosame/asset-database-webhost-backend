@@ -21,13 +21,15 @@ if (!$image->readOne()) {
     return;
 }
 
-header('Content-Disposition: filename='. $image->filename);
-
 if ($data->isThumbnail) {
     $subpath="thumb";
+    $image->filename = "thumb_".$image->$filename;
 } else {
     $subpath="fullres";
 }
+
+header('Content-Disposition: filename='. $image->$filename);
+
 $path = DIRECTORY_SEPARATOR . $subpath . DIRECTORY_SEPARATOR . $image->hash . ".png";
 
 $contents = $filesystem->read($path);
