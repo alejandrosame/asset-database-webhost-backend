@@ -74,7 +74,6 @@ class Creature
         $stmt->bindParam(":name", $this->name);
 
         if ($stmt->execute()) {
-            $this->name = $this->conn->insert_id;
             return true;
         }
 
