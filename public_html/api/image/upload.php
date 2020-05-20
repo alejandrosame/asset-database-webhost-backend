@@ -7,21 +7,52 @@ require __DIR__ . '/../../../vendor/autoload.php';
 
 define('MB', 1048576);
 
-header("Access-Control-Allow-Origin: http://localhost/api/asset/");
-header("Content-Type: application/json; charset=UTF-8");
+if (isset($_SERVER["HTTP_ORIGIN"])) {
+    //header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Origin: *");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
+    exit(0);
+}
+
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Max-Age: 3600");
+
+// Check required fields
+$REQUIRED_FIELDS = ["file", "number", "name", "side"];
+$missing_fields = array_filter($REQUIRED_FIELDS, function ($key) {
+    return !(isset($_FILES[$key]) or isset($_POST[$key]));
+});
+
+if (count($missing_fields) > 0) {
+    http_response_code(400);
+    echo json_encode(
+        array(
+          "message" => "Missing the following fields: ". implode(", ", $missing_fields)
+        )
+    );
+    return;
+}
+
+// Set arguments
+$uploadFile = $_FILES["file"];
+$uploadNumber = $_POST["number"];
+$uploadName = $_POST["name"];
+$uploadSide = $_POST["side"];
 
 $database = new Database();
 $db = $database->getConnection();
 $image = new Image($db);
 
-$uploadName = "fileA";
-$target_file = basename($_FILES[$uploadName]["name"]);
-$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+$targetFile = basename($uploadFile["name"]);
+$imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
 // Check if image file is a actual image or fake image
-$check = getimagesize($_FILES[$uploadName]["tmp_name"]);
+$check = getimagesize($uploadFile["tmp_name"]);
 if ($check == false) {
     http_response_code(400);
     echo json_encode(
@@ -33,7 +64,7 @@ if ($check == false) {
 }
 
 // Check file size
-if ($_FILES[$uploadName]["size"] > 10*MB) {
+if ($uploadFile["size"] > 10*MB) {
     http_response_code(400);
     echo json_encode(
         array(
@@ -53,8 +84,8 @@ if ($imageFileType != "png") {
     return;
 }
 
-$fileName = $_FILES[$uploadName]['name'];
-$stream = fopen($_FILES[$uploadName]['tmp_name'], 'r+');
+$fileName = $uploadFile['name'];
+$stream = fopen($uploadFile['tmp_name'], 'r+');
 $imageContents = stream_get_contents($stream);
 
 if (is_resource($stream)) {
@@ -89,9 +120,15 @@ if (!$filesystem->has($thumbpath)) {
     $filesystem->write($thumbpath, $thumbnail->getString());
 }
 
+$image->number = $uploadNumber;
+$image->name = $uploadName;
+$image->side = $uploadSide;
+
 if (!$image->create()) {
     $filesystem->delete($fullrespath);
     $filesystem->delete($thumbpath);
+
+    error_log($image->error);
 
     http_response_code(503);
     echo json_encode(array("message" => "Unable to upload image."));

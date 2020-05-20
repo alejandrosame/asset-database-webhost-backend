@@ -18,6 +18,7 @@ class Image
     // Output properties
     public $name;
     public $filename;
+    public $error;
 
     // constructor with $db as database connection
     public function __construct($db)
@@ -100,6 +101,7 @@ class Image
             $creature->id = $this->number;
             $creature->name = $this->name;
             if (!$creature->create()) {
+                $this->error=$creature->error;
                 return false;
             }
         }
@@ -122,6 +124,7 @@ class Image
             return true;
         }
 
+        $this->error = implode(":", $stmt->errorInfo());
         return false;
     }
 

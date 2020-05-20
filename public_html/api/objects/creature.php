@@ -11,6 +11,9 @@ class Creature
     public $created;
     public $updated;
 
+    // output properties
+    public $error;
+
     // constructor with $db as database connection
     public function __construct($db)
     {
@@ -75,6 +78,7 @@ class Creature
             return true;
         }
 
+        $this->error = implode(":", $stmt->errorInfo());
         return false;
     }
 
