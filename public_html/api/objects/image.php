@@ -45,9 +45,9 @@ class Image
     public function readOne()
     {
         $creature = new Creature($this->conn);
-        $query = "SELECT i.id as id, i.number as number, c.name as name, i.side as side, i.created, i.updated
+        $query = "SELECT i.id as id, i.number as number, i.hash as hash, c.name as name, i.side as side, i.created, i.updated
             FROM " . $this->table_name . " i
-            LEFT JOIN ". $creature->table_name ." c
+            LEFT JOIN ". $creature->table_name() ." c
             ON (i.number = c.id)
             WHERE i.id = :id
             LIMIT 0,1";
@@ -65,6 +65,7 @@ class Image
 
             $this->id = $row['id'];
             $this->number = $row['number'];
+            $this->hash = $row['hash'];
             $this->name = $row['name'];
             $this->side = $row['side'];
             $this->created = $row['created'];

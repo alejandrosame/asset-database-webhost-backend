@@ -24,6 +24,8 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         "number" => $number,
         "name" => $name,
         "side" => $side,
+        "fullURL" => "/api/image/serve.php?id=".$id,
+        "thumbURL" => "/api/image/serve.php?id=".$id."&thumbnail",
         "created" => $created,
         "updated" => $updated
     );
