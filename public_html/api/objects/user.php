@@ -50,8 +50,6 @@ class User
 
         $num = $stmt->rowCount();
 
-        error_log("-->" . $this->id ." ". $num);
-
         if ($num>0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 

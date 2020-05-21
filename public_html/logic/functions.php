@@ -34,11 +34,38 @@ function getBearerToken()
     return null;
 }
 /**
+ * Create token
+ * */
+function createToken($user)
+{
+    include __DIR__ .'/../api/config/core.php';
+    require __DIR__.'/../../vendor/autoload.php';
+
+    $token = array(
+       "iss" => $iss,
+       "aud" => $aud,
+       "iat" => $iat,
+       "nbf" => $nbf,
+       "exp" => $exp,
+       "data" => array(
+           "id" => $user->id,
+           "username" => $user->username,
+           "email" => $user->email,
+           "isadmin" => $user->isadmin
+       )
+    );
+
+    return array(
+      "tokenData" => $token,
+      "token" => \Firebase\JWT\JWT::encode($token, $key)
+    );
+}
+/**
  * Validate token
  * */
 function validateToken()
 {
-    include_once __DIR__ .'/../api/config/core.php';
+    include __DIR__ .'/../api/config/core.php';
     require __DIR__.'/../../vendor/autoload.php';
 
     $DEFAULT = null;
