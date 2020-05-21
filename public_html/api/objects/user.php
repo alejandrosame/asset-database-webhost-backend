@@ -35,6 +35,38 @@ class User
         return $stmt;
     }
 
+    public function readOne()
+    {
+        $query = "SELECT id, username, email, isadmin, created, updated
+            FROM " . $this->table_name . "
+            WHERE id = :id
+            LIMIT 0,1";
+
+        $this->id=htmlspecialchars(strip_tags($this->id));
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":id", $this->id);
+        $stmt->execute();
+
+        $num = $stmt->rowCount();
+
+        error_log("-->" . $this->id ." ". $num);
+
+        if ($num>0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $this->id = $row['id'];
+            $this->username = $row['username'];
+            $this->email = $row['email'];
+            $this->isadmin = $row['isadmin'];
+            $this->created = $row['created'];
+            $this->updated = $row['updated'];
+
+            return true;
+        }
+        return false;
+    }
+
     public function emailExists()
     {
         $query = "SELECT id, username, email, password, isadmin, created, updated
@@ -64,6 +96,15 @@ class User
             return true;
         }
         return false;
+    }
+
+    public function verifyUser($email, $password)
+    {
+        $this->email=$email;
+        $email_exists = $this->emailExists();
+        $correctPassword = $password == $this->password;
+
+        return $email_exists and $correctPassword;
     }
 
     public function delete()

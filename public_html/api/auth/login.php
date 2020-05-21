@@ -29,38 +29,35 @@ $db = $database->getConnection();
 
 $data = json_decode(file_get_contents("php://input"));
 
+# TODO: Change for password verification
 $user = new User($db);
-$user->email = $data->email;
-
-$email_exists = $user->emailExists();
-
-# TODO: Change for password_verify
-$result = $data->password == $user->password;
-if ($email_exists && $result) {
-    $token = array(
-       "iss" => $iss,
-       "aud" => $aud,
-       "iat" => $iat,
-       "nbf" => $nbf,
-       "exp" => $exp,
-       "data" => array(
-           "id" => $user->id,
-           "username" => $user->username,
-           "email" => $user->email,
-           "isadmin" => $user->isadmin
-       )
-    );
-
-    $jwt = JWT::encode($token, $key);
-    http_response_code(200);
-    echo json_encode(
-        array(
-                "idToken" => $jwt,
-                "localId" => $user->id,
-                "expiresIn" => ($exp - $iat)
-            )
-        );
-} else {
+if (!$user->verifyUser($data->email, $data->password)) {
     http_response_code(401);
     echo json_encode(array("error" => array("message" => "Wrong credentials.")));
+    exit();
 }
+
+// Successful login
+$token = array(
+   "iss" => $iss,
+   "aud" => $aud,
+   "iat" => $iat,
+   "nbf" => $nbf,
+   "exp" => $exp,
+   "data" => array(
+       "id" => $user->id,
+       "username" => $user->username,
+       "email" => $user->email,
+       "isadmin" => $user->isadmin
+   )
+);
+
+$jwt = JWT::encode($token, $key);
+http_response_code(200);
+echo json_encode(
+    array(
+        "token" => $jwt,
+        "id" => $user->id,
+        "expiresIn" => ($exp - $iat)
+    )
+);
