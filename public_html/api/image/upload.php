@@ -9,6 +9,7 @@ require __DIR__ . '/../../../vendor/autoload.php';
 define('MB', 1048576);
 
 setHeaders();
+$user = isUser();
 
 // Check required fields
 $REQUIRED_FIELDS = ["file", "number", "name", "side"];

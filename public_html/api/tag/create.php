@@ -4,6 +4,7 @@ include_once '../objects/tag.php';
 include_once __DIR__.'/../../logic/functions.php';
 
 setHeaders();
+$user = isUser();
 
 $database = new Database();
 $db = $database->getConnection();

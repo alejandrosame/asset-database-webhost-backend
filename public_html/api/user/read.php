@@ -4,6 +4,7 @@ include_once '../objects/user.php';
 include_once __DIR__.'/../../logic/functions.php';
 
 setHeaders();
+$user = isAdmin();
 
 $database = new Database();
 $db = $database->getConnection();

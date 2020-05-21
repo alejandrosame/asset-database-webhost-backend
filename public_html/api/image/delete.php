@@ -6,6 +6,7 @@ include_once __DIR__.'/../../logic/functions.php';
 
 setHeaders();
 
+$user = isUser();
 // get database connection
 $database = new Database();
 $db = $database->getConnection();
