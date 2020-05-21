@@ -1,4 +1,5 @@
 <?php
+include_once '../config/core.php';
 include_once '../config/database.php';
 include_once '../objects/user.php';
 
@@ -28,8 +29,6 @@ $db = $database->getConnection();
 
 $data = json_decode(file_get_contents("php://input"));
 
-error_log(file_get_contents("php://input"));
-
 $user = new User($db);
 $user->email = $data->email;
 
@@ -58,7 +57,7 @@ if ($email_exists && $result) {
         array(
                 "idToken" => $jwt,
                 "localId" => $user->id,
-                "expiresIn" => ($exp - $iat) + 1000
+                "expiresIn" => ($exp - $iat)
             )
         );
 } else {
