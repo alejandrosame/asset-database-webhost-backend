@@ -60,7 +60,6 @@ function validateToken()
     }
     return $decoded->data;
 }
-
 /**
  * Validate user
  * */
@@ -91,8 +90,6 @@ function isUser($checkIsAdmin = false)
     }
     return $user;
 }
-
-
 /**
  * Validate admin
  * */
