@@ -1,9 +1,9 @@
 <?php
 include_once '../config/database.php';
 include_once '../objects/product.php';
+include_once __DIR__.'/../../logic/functions.php';
 
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+setHeaders();
 
 $database = new Database();
 $db = $database->getConnection();

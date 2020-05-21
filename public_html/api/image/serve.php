@@ -2,8 +2,9 @@
 include_once '../config/filesystem.php';
 include_once '../config/database.php';
 include_once '../objects/image.php';
+include_once __DIR__.'/../../logic/functions.php';
 
-header("Access-Control-Allow-Origin: *");
+setHeadersWithoutContentType();
 
 // Check required fields
 $REQUIRED_FIELDS = ["id"];
