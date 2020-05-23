@@ -9,7 +9,6 @@ class User
     // object properties
     public $id;
     public $username;
-    public $email;
     public $isadmin;
     public $created;
     public $updated;
@@ -23,7 +22,7 @@ class User
 
     public function read()
     {
-        $query = "SELECT id, username, email, isadmin, created, updated
+        $query = "SELECT id, username, isadmin, created, updated
             FROM
                 " . $this->table_name . "
             ORDER BY
@@ -37,7 +36,7 @@ class User
 
     public function readOne()
     {
-        $query = "SELECT id, username, email, isadmin, created, updated
+        $query = "SELECT id, username, isadmin, created, updated
             FROM " . $this->table_name . "
             WHERE id = :id
             LIMIT 0,1";
@@ -55,7 +54,6 @@ class User
 
             $this->id = $row['id'];
             $this->username = $row['username'];
-            $this->email = $row['email'];
             $this->isadmin = $row['isadmin'];
             $this->created = $row['created'];
             $this->updated = $row['updated'];
@@ -65,28 +63,25 @@ class User
         return false;
     }
 
-    public function emailExists()
+    public function exists()
     {
-        $query = "SELECT id, username, email, password, isadmin, created, updated
+        $query = "SELECT id, username, isadmin, created, updated
             FROM " . $this->table_name . "
-            WHERE email = ?
+            WHERE username = ?
             LIMIT 0,1";
 
         # Sanitize input
-        $this->email=htmlspecialchars(strip_tags($this->email));
+        $this->username=htmlspecialchars(strip_tags($this->username));
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->email);
+        $stmt->bindParam(1, $this->username);
         $stmt->execute();
         $num = $stmt->rowCount();
 
-        // if email exists, assign values to object properties for easy access and use for php sessions
         if ($num>0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $this->id = $row['id'];
-            $this->username = $row['username'];
-            $this->password = $row['password'];
             $this->isadmin = $row['isadmin'];
             $this->created = $row['created'];
             $this->updated = $row['updated'];
@@ -96,13 +91,13 @@ class User
         return false;
     }
 
-    public function verifyUser($email, $password)
+    public function verifyUser($username, $password)
     {
-        $this->email=$email;
-        $email_exists = $this->emailExists();
-        $correctPassword = $password == $this->password;
+        $this->username=$username;
+        $user_exists = $this->exists();
+        $correctPassword = $password == $password;
 
-        return $email_exists and $correctPassword;
+        return $user_exists and $correctPassword;
     }
 
     public function delete()

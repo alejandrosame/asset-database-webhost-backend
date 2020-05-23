@@ -50,7 +50,6 @@ function createToken($user)
        "data" => array(
            "id" => $user->id,
            "username" => $user->username,
-           "email" => $user->email,
            "isadmin" => $user->isadmin
        )
     );

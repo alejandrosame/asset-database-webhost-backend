@@ -11,7 +11,7 @@ $data = json_decode(file_get_contents("php://input"));
 
 # TODO: Change for password verification
 $user = new User($db);
-if (!$user->verifyUser($data->email, $data->password)) {
+if (!$user->verifyUser($data->username, $data->password)) {
     http_response_code(401);
     echo json_encode(array("error" => array("message" => "Wrong credentials.")));
     exit();
