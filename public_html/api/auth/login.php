@@ -9,7 +9,6 @@ $db = $database->getConnection();
 
 $data = json_decode(file_get_contents("php://input"));
 
-# TODO: Change for password verification
 $user = new User($db);
 if (!$user->verifyUser($data->username, $data->password)) {
     http_response_code(401);

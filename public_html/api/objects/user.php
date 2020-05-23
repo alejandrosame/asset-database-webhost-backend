@@ -20,6 +20,34 @@ class User
         $this->conn = $db;
     }
 
+    public function create($username, $password)
+    {
+        include __DIR__.'/../config/core.php';
+
+        $query = "INSERT INTO
+                " . $this->table_name . "
+            SET
+                username=:username, password=:password";
+
+        $stmt = $this->conn->prepare($query);
+
+        $this->username=htmlspecialchars(strip_tags($username));
+        $this->password=htmlspecialchars(strip_tags($password));
+
+        $this->password=hash_hmac("sha512", $this->password, $pepper);
+        $this->password=password_hash($this->password, PASSWORD_DEFAULT);
+
+        $stmt->bindParam(":username", $this->username);
+        $stmt->bindParam(":password", $this->password);
+
+        if ($stmt->execute()) {
+            $this->id = $this->conn->insert_id;
+            return true;
+        }
+
+        return false;
+    }
+
     public function read()
     {
         $query = "SELECT id, username, isadmin, created, updated
@@ -65,7 +93,7 @@ class User
 
     public function exists()
     {
-        $query = "SELECT id, username, isadmin, created, updated
+        $query = "SELECT id, username, password, isadmin, created, updated
             FROM " . $this->table_name . "
             WHERE username = ?
             LIMIT 0,1";
@@ -82,6 +110,7 @@ class User
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $this->id = $row['id'];
+            $this->password = $row['password'];
             $this->isadmin = $row['isadmin'];
             $this->created = $row['created'];
             $this->updated = $row['updated'];
@@ -93,9 +122,13 @@ class User
 
     public function verifyUser($username, $password)
     {
+        include __DIR__.'/../config/core.php';
+
         $this->username=$username;
         $user_exists = $this->exists();
-        $correctPassword = $password == $password;
+
+        $passwordPeppered = hash_hmac("sha512", $password, $pepper);
+        $correctPassword = password_verify($passwordPeppered, $this->password);
 
         return $user_exists and $correctPassword;
     }
