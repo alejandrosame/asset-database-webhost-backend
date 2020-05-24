@@ -50,7 +50,7 @@ class Tag
         $stmt->bindParam(":name", $this->name);
 
         if ($stmt->execute()) {
-            $this->name = $this->conn->insert_id;
+            $this->id=$this->conn->lastInsertId();
             return true;
         }
 

@@ -122,6 +122,7 @@ class Image
         $stmt->bindParam(":hash", $this->hash);
 
         if ($stmt->execute()) {
+            $this->id=$this->conn->lastInsertId();
             return true;
         }
 

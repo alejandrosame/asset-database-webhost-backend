@@ -90,6 +90,7 @@ class Asset
         $stmt->bindParam(":notes", $this->notes);
 
         if ($stmt->execute()) {
+            $this->id=$this->conn->lastInsertId();
             return true;
         }
 
