@@ -20,31 +20,34 @@ class User
         $this->conn = $db;
     }
 
-    public function create($username, $password)
+    public function create($username, $password, $admin)
     {
         include __DIR__.'/../config/core.php';
 
         $query = "INSERT INTO
                 " . $this->table_name . "
             SET
-                username=:username, password=:password";
+                username=:username, password=:password, isadmin=:isadmin";
 
         $stmt = $this->conn->prepare($query);
 
         $this->username=htmlspecialchars(strip_tags($username));
         $this->password=htmlspecialchars(strip_tags($password));
+        $this->isadmin=htmlspecialchars(strip_tags(intval($admin)));
 
         $this->password=hash_hmac("sha512", $this->password, $pepper);
         $this->password=password_hash($this->password, PASSWORD_DEFAULT);
 
         $stmt->bindParam(":username", $this->username);
         $stmt->bindParam(":password", $this->password);
+        $stmt->bindParam(":isadmin", $this->isadmin);
 
         if ($stmt->execute()) {
-            $this->id = $this->conn->insert_id;
+            $this->id=$this->conn->lastInsertId();
             return true;
         }
 
+        error_log(implode(":", $stmt->errorInfo()));
         return false;
     }
 
