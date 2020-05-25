@@ -38,8 +38,8 @@ function getBearerToken()
  * */
 function createToken($user)
 {
-    include __DIR__ .'/../api/config/core.php';
-    require __DIR__.'/../../vendor/autoload.php';
+    include __DIR__ .'/../config/core.php';
+    require __DIR__.'/../vendor/autoload.php';
 
     $token = array(
        "iss" => $iss,
@@ -64,8 +64,8 @@ function createToken($user)
  * */
 function validateToken()
 {
-    include __DIR__ .'/../api/config/core.php';
-    require __DIR__.'/../../vendor/autoload.php';
+    include __DIR__ .'/../config/core.php';
+    require __DIR__.'/../vendor/autoload.php';
 
     $DEFAULT = null;
 
@@ -93,8 +93,8 @@ function isUser($checkIsAdmin = false)
 {
     $data=validateToken();
 
-    include_once __DIR__ .'/../api/config/database.php';
-    include_once __DIR__ .'/../api/objects/user.php';
+    include_once __DIR__ .'/../config/database.php';
+    include_once __DIR__ .'/../objects/user.php';
 
     $DEFAULT = null;
 
