@@ -33,7 +33,7 @@ class User
 
         $this->username=htmlspecialchars(strip_tags($username));
         $this->password=htmlspecialchars(strip_tags($password));
-        $this->isadmin=htmlspecialchars(strip_tags(intval($admin)));
+        $this->isadmin=htmlspecialchars(strip_tags(intval(boolval($admin))));
 
         $this->password=hash_hmac("sha512", $this->password, $pepper);
         $this->password=password_hash($this->password, PASSWORD_DEFAULT);
