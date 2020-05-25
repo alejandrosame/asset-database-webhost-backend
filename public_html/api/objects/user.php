@@ -66,6 +66,29 @@ class User
         }
     }
 
+    public function updateAdminStatus()
+    {
+        include __DIR__.'/../config/core.php';
+
+        $query = "UPDATE
+                " . $this->table_name . "
+            SET isadmin = NOT isadmin
+            WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
+
+        $this->isadmin = !$this->isadmin;
+
+        $stmt->bindParam(":id", $this->id);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+
+        error_log(implode(":", $stmt->errorInfo()));
+        return false;
+    }
+
     public function read()
     {
         $query = "SELECT id, username, isadmin, created, updated
