@@ -42,13 +42,24 @@ class User
         $stmt->bindParam(":password", $this->password);
         $stmt->bindParam(":isadmin", $this->isadmin);
 
-        if ($stmt->execute()) {
-            $this->id=$this->conn->lastInsertId();
-            return true;
-        }
+        try {
+            if ($stmt->execute()) {
+                $this->id=$this->conn->lastInsertId();
+                return true;
+            }
 
-        error_log(implode(":", $stmt->errorInfo()));
-        return false;
+            error_log(implode(":", $stmt->errorInfo()));
+            return false;
+        } catch (\PDOException $e) {
+            if ($e->errorInfo[1] == 1062) {
+                $this->error="User already exists.";
+            } else {
+                $this->error=$e->errorInfo[2];
+                error_log(implode(":", $e->errorInfo));
+            }
+
+            return false;
+        }
     }
 
     public function read()

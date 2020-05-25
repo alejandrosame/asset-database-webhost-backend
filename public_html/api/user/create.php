@@ -24,7 +24,7 @@ if (
         ));
     } else {
         http_response_code(503);
-        echo json_encode(array("message" => "Unable to create user."));
+        echo json_encode(array("message" => $user->error));
     }
 } else {
     http_response_code(400);
