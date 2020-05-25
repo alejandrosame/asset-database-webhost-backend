@@ -1,7 +1,7 @@
 <?php
-include_once '../config/database.php';
-include_once '../objects/image.php';
-include_once __DIR__.'/../../logic/functions.php';
+include_once __DIR__.'/../../../config/database.php';
+include_once __DIR__.'/../../../objects/image.php';
+include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $user = isUser();

@@ -1,8 +1,8 @@
 <?php
-include_once '../config/filesystem.php';
-include_once '../config/database.php';
-include_once '../objects/image.php';
-include_once __DIR__.'/../../logic/functions.php';
+include_once __DIR__.'/../../../config/filesystem.php';
+include_once __DIR__.'/../../../config/database.php';
+include_once __DIR__.'/../../../objects/image.php';
+include_once __DIR__.'/../../../logic/functions.php';
 
 require __DIR__ . '/../../../vendor/autoload.php';
 

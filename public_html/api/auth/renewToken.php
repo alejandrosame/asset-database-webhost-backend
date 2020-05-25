@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__.'/../../logic/functions.php';
+include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $user = isUser();

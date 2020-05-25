@@ -1,6 +1,6 @@
 <?php
-include_once '../config/database.php';
-include_once '../objects/asset.php';
+include_once __DIR__.'/../../../config/database.php';
+include_once __DIR__.'/../../../objects/asset.php';
 
 header("Access-Control-Allow-Origin: http://localhost/api/asset/");
 header("Content-Type: application/json; charset=UTF-8");

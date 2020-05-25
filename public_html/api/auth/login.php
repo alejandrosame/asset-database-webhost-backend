@@ -1,7 +1,7 @@
 <?php
-include_once __DIR__.'/../config/database.php';
-include_once __DIR__.'/../objects/user.php';
-include_once __DIR__.'/../../logic/functions.php';
+include_once __DIR__.'/../../../config/database.php';
+include_once __DIR__.'/../../../objects/user.php';
+include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $database = new Database();
