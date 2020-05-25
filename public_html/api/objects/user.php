@@ -33,7 +33,11 @@ class User
 
         $this->username=htmlspecialchars(strip_tags($username));
         $this->password=htmlspecialchars(strip_tags($password));
-        $this->isadmin=htmlspecialchars(strip_tags(intval(boolval($admin))));
+        $admin=htmlspecialchars(strip_tags($admin));
+        $this->isadmin = 0;
+        if ($admin == "true") {
+            $this->isadmin = 1;
+        }
 
         $this->password=hash_hmac("sha512", $this->password, $pepper);
         $this->password=password_hash($this->password, PASSWORD_DEFAULT);
@@ -68,7 +72,7 @@ class User
             FROM
                 " . $this->table_name . "
             ORDER BY
-                created DESC";
+                created ASC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
