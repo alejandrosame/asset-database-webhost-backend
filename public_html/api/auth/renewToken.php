@@ -9,6 +9,7 @@ echo json_encode(
     array(
         "token" => $token["token"],
         "id" => $user->id,
+        "isAdmin" => boolval($user->isadmin),
         "expiresIn" => ($token["tokenData"]["exp"] - $token["tokenData"]["iat"])
     )
 );
