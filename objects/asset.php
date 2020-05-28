@@ -12,11 +12,11 @@ class Asset
 
     // object properties
     public $id;
-    public $order_;
+    public $order;
     public $display_size;
     public $printed_size;
-    public $front_image_id;
-    public $back_image_id;
+    public $front_image;
+    public $back_image;
     public $number;
     public $name;
     public $notes;
@@ -24,6 +24,7 @@ class Asset
     public $updated;
     public $products;
     public $tags;
+    public $related_creatures;
 
     // constructor with $db as database connection
     public function __construct($db)
@@ -38,25 +39,60 @@ class Asset
         unset($product);
     }
 
+    private function generic_read_query()
+    {
+        return "
+          WITH tags_array AS (
+            SELECT a.id AS asset_id, JSON_ARRAYAGG(t.name) AS tags
+            FROM ". $this->table_name ." a
+            JOIN asset_has_tag aht ON (a.id = aht.asset_id)
+            JOIN ". $this->tag_table_name ." t ON (aht.tag_id = t.id)
+            GROUP BY (a.id)
+          ),
+          products_array AS (
+            SELECT a.id AS asset_id, JSON_ARRAYAGG(p.name) AS products
+            FROM ". $this->table_name ." a
+            JOIN asset_has_product ahp ON (a.id = ahp.product_id)
+            JOIN ". $this->product_table_name ." p ON (ahp.product_id = p.id)
+            GROUP BY (a.id)
+          ),
+          creature_references AS (
+            SELECT  c.id as number,
+                    JSON_OBJECT('number', c.id, 'name', c.name, 'ref', a.id) as ref
+            FROM creature c
+            LEFT JOIN (
+              SELECT a_partitioned.*
+              FROM (
+                SELECT  *,
+                        ROW_NUMBER() OVER (PARTITION BY number ORDER BY order_ ASC) rn
+                FROM ". $this->table_name ."
+              ) a_partitioned
+              WHERE a_partitioned.rn = 1) a
+            ON (c.id = a.number)
+          ),
+          related_creatures_array AS (
+            SELECT rc.asset AS id, JSON_ARRAYAGG(c.ref) AS refs
+            FROM related_creatures rc
+            LEFT JOIN creature_references c ON (rc.creature = c.number)
+            GROUP BY (rc.asset)
+          )
+          SELECT  a.*,
+                  c.name AS name,
+                  COALESCE(t.tags, '[]') AS tags,
+                  COALESCE(p.products, '[]') AS products,
+                  COALESCE(rc.refs, '[]') AS related_creatures
+          FROM asset a
+          LEFT JOIN creature AS c ON (a.number = c. id)
+          LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
+          LEFT JOIN products_array AS p ON (a.id = p.asset_id)
+          LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id)
+          ORDER BY a.created ASC
+      ";
+    }
+
     public function read()
     {
-        $query="SELECT a.*, COALESCE(t_array.tags, '[]') AS tags, COALESCE(p_array.products, '[]') AS products
-        FROM ". $this->table_name ." a
-        LEFT JOIN
-          (SELECT a.id AS asset_id, JSON_ARRAYAGG(t.name) AS tags
-          FROM ". $this->table_name ." a
-          JOIN asset_has_tag aht ON (a.id = aht.asset_id)
-          JOIN ". $this->tag_table_name ." t ON (aht.tag_id = t.id)
-          GROUP BY (a.id)) as t_array ON (a.id = t_array.asset_id)
-        LEFT JOIN
-          (SELECT a.id AS asset_id, JSON_ARRAYAGG(p.name) AS products
-          FROM ". $this->table_name ." a
-          JOIN asset_has_product ahp ON (a.id = ahp.product_id)
-          JOIN ". $this->product_table_name ." p ON (ahp.product_id = p.id)
-          GROUP BY (a.id)) as p_array ON (a.id = p_array.asset_id)
-        ORDER BY created ASC";
-
-        $stmt = $this->conn->prepare($query);
+        $stmt = $this->conn->prepare($this->generic_read_query());
         $stmt->execute();
 
         return $stmt;
@@ -67,36 +103,40 @@ class Asset
         $query = "INSERT INTO
                 " . $this->table_name . "
             SET
-                order_=:order, display_size=:display_size, printed_size=:printed_size, front_image_id=:front_image_id, back_image_id=:back_image_id, number=:number, name=:name, notes=:notes";
+                order_=:order, display_size=:display_size, printed_size=:printed_size, number=:number, notes=:notes";
 
-        $stmt = $this->conn->prepare($query);
-
-        $this->order_=htmlspecialchars(strip_tags($this->order_));
+        $this->order=htmlspecialchars(strip_tags($this->order));
         $this->display_size=htmlspecialchars(strip_tags($this->display_size));
         $this->printed_size=htmlspecialchars(strip_tags($this->printed_size));
-        $this->front_image_id=htmlspecialchars(strip_tags($this->front_image_id));
-        $this->back_image_id=htmlspecialchars(strip_tags($this->back_image_id));
         $this->number=htmlspecialchars(strip_tags($this->number));
         $this->name=htmlspecialchars(strip_tags($this->name));
         $this->notes=htmlspecialchars(strip_tags($this->notes));
 
-        $stmt->bindParam(":order", $this->order_);
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":number", $this->number);
+        $stmt->bindParam(":order", $this->order);
         $stmt->bindParam(":display_size", $this->display_size);
         $stmt->bindParam(":printed_size", $this->printed_size);
-        $stmt->bindParam(":front_image_id", $this->front_image_id);
-        $stmt->bindParam(":back_image_id", $this->back_image_id);
-        $stmt->bindParam(":number", $this->number);
-        $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":notes", $this->notes);
 
-        if ($stmt->execute()) {
-            $this->id=$this->conn->lastInsertId();
-            return true;
+        try {
+            if ($stmt->execute()) {
+                $this->id=$this->conn->lastInsertId();
+                return true;
+            }
+            error_log(json_encode($stmt->errorInfo()));
+            return false;
+        } catch (\PDOException $e) {
+            if ($e->errorInfo[1] == 1062) {
+                $this->error="Asset already exists.";
+            } else {
+                $this->error=$e->errorInfo[2];
+                error_log(implode(":", $e->errorInfo));
+            }
+
+            return false;
         }
-
-        error_log(json_encode($stmt->errorInfo()));
-
-        return false;
     }
 
     public function delete()
