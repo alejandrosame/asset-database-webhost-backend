@@ -22,13 +22,29 @@ $arr["assets"]=array();
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     extract($row);
 
+    $full_frontURL = null;
+    $thumb_frontURL = null;
+    if ($front_image !== null) {
+        $full_frontURL = "/api/image/serve.php?id=".$front_image;
+        $thumb_frontURL = "/api/image/serve.php?id=".$front_image."&thumbnail";
+    }
+
+    $full_backURL = null;
+    $thumb_backURL = null;
+    if ($back_image !== null) {
+        $full_backURL = "/api/image/serve.php?id=".$back_image;
+        $thumb_backURL = "/api/image/serve.php?id=".$back_image."&thumbnail";
+    }
+
     $item=array(
         "id" => $id,
         "order" => $order_,
         "display_size" => $display_size,
         "printed_size" => $printed_size,
-        "front_image_id" => $front_image_id,
-        "back_image_id" => $back_image_id,
+        "full_frontURL" => $full_frontURL,
+        "thumb_frontURL" => $thumb_frontURL,
+        "full_backURL" => $full_backURL,
+        "thumb_backURL" => $thumb_backURL,
         "number" => $number,
         "name" => $name,
         "notes" => $notes,
