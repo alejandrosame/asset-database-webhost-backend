@@ -24,19 +24,39 @@ class Image
     public function __construct($db)
     {
         $this->conn = $db;
+        $this->default_order = " ORDER BY created DESC ";
+    }
+
+    public function generic_read_query()
+    {
+        $creature = new Creature($this->conn);
+        return "SELECT i.id as id, i.number as number, c.name as name, i.hash as hash, i.side as side, i.created, i.updated
+            FROM " . $this->table_name . " i
+            LEFT JOIN ". $creature->table_name() ." c
+            ON (i.number = c.id)";
     }
 
     public function read()
     {
-        $creature = new Creature($this->conn);
-        $query = "SELECT i.id as id, i.number as number, c.name as name, i.side as side, i.created, i.updated
-            FROM " . $this->table_name . " i
-            LEFT JOIN ". $creature->table_name() ." c
-            ON (i.number = c.id)
-            ORDER BY
-                created DESC";
+        $stmt = $this->conn->prepare(
+            $this->generic_read_query() . $this->default_order
+        );
+        $stmt->execute();
+
+        return $stmt;
+    }
+
+    public function readPage($from, $page_size)
+    {
+        $query = $this->generic_read_query() .
+          $this->default_order .
+          " LIMIT ?, ?";
 
         $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(1, $from, PDO::PARAM_INT);
+        $stmt->bindParam(2, $page_size, PDO::PARAM_INT);
+
         $stmt->execute();
 
         return $stmt;
@@ -44,11 +64,7 @@ class Image
 
     public function readOne()
     {
-        $creature = new Creature($this->conn);
-        $query = "SELECT i.id as id, i.number as number, i.hash as hash, c.name as name, i.side as side, i.created, i.updated
-            FROM " . $this->table_name . " i
-            LEFT JOIN ". $creature->table_name() ." c
-            ON (i.number = c.id)
+        $query = $this->generic_read_query() . "
             WHERE i.id = :id
             LIMIT 0,1";
 
@@ -144,5 +160,21 @@ class Image
         }
 
         return false;
+    }
+
+    public function toArray($row)
+    {
+        extract($row);
+
+        return array(
+          "id" => $id,
+          "number" => $number,
+          "name" => $name,
+          "side" => $side,
+          "fullURL" => "/api/image/serve.php?id=".$id,
+          "thumbURL" => "/api/image/serve.php?id=".$id."&thumbnail",
+          "created" => $created,
+          "updated" => $updated
+      );
     }
 }
