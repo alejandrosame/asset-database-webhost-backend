@@ -142,3 +142,48 @@ function setHeaders()
     header("Content-Type: application/json; charset=UTF-8");
     setHeadersWithoutContentType();
 }
+/*
+ * Get paging info
+ */
+function getPagingInfo()
+{
+    $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
+    $page_size = filter_input(INPUT_GET, 'page_size', FILTER_VALIDATE_INT);
+
+    if ($page == null) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Missing page to retrieve."));
+        exit();
+    }
+    if ($page_size == null) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Missing page size."));
+        exit();
+    }
+    if ($page == false) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Page parameter must be int."));
+        exit();
+    }
+    if ($page_size == false) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Page size parameter must be int."));
+        exit();
+    }
+    if ($page <= 0) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Page parameter must be bigger than 0."));
+        exit();
+    }
+    if ($page_size <= 0) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Page size parameter must be bigger than 0."));
+        exit();
+    }
+
+    return array(
+    "page" => $page,
+    "page_size" => $page_size,
+    "from" => ($page_size * $page) - $page_size
+  );
+}
