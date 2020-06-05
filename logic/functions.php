@@ -143,47 +143,66 @@ function setHeaders()
     setHeadersWithoutContentType();
 }
 /*
+ * Get check int
+ */
+function getCheckStr($field)
+{
+    $value = $_GET[$field];
+
+    if ($value == null and $value != "0") {
+        http_response_code(401);
+        echo json_encode(array("message" => "Missing field '".$field."' to retrieve."));
+        exit();
+    }
+
+    return $value;
+}
+/*
+ * Get check int
+ */
+function getCheckInt($field, $zeroIsValid = false)
+{
+    $value = $_GET[$field];
+    if ($value == "0") {
+        $value = 0;
+    } else {
+        $value = filter_input(INPUT_GET, $field, FILTER_VALIDATE_INT);
+        if ($value == null) {
+            http_response_code(401);
+            echo json_encode(array("message" => "Missing field '".$field."' to retrieve."));
+            exit();
+        }
+        if ($value == false) {
+            http_response_code(401);
+            echo json_encode(array("message" => "Field '".$field."' must be int."));
+            exit();
+        }
+    }
+
+    if (!$zeroIsValid && $value == 0) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Field '".$field."' must be bigger than 0."));
+        exit();
+    }
+    if ($value < 0) {
+        http_response_code(401);
+        echo json_encode(array("message" => "Field '".$field."' must be positive."));
+        exit();
+    }
+
+    return $value;
+}
+/*
  * Get paging info
  */
 function getPagingInfo()
 {
-    $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
-    $page_size = filter_input(INPUT_GET, 'page_size', FILTER_VALIDATE_INT);
-
-    if ($page == null) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Missing page to retrieve."));
-        exit();
-    }
-    if ($page_size == null) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Missing page size."));
-        exit();
-    }
-    if ($page == false) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Page parameter must be int."));
-        exit();
-    }
-    if ($page_size == false) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Page size parameter must be int."));
-        exit();
-    }
-    if ($page <= 0) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Page parameter must be bigger than 0."));
-        exit();
-    }
-    if ($page_size <= 0) {
-        http_response_code(401);
-        echo json_encode(array("message" => "Page size parameter must be bigger than 0."));
-        exit();
-    }
+    $page = getCheckInt('page');
+    $page_size = getCheckInt('page_size');
 
     return array(
-    "page" => $page,
-    "page_size" => $page_size,
-    "from" => ($page_size * $page) - $page_size
-  );
+      "page" => $page,
+      "page_size" => $page_size,
+      "from" => ($page_size * $page) - $page_size
+    );
 }

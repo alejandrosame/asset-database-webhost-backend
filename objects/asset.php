@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__).'/tag.php';
 include_once dirname(__FILE__).'/product.php';
+include_once dirname(__FILE__).'/creature.php';
 
 class Asset
 {
@@ -39,7 +40,7 @@ class Asset
         unset($product);
     }
 
-    private function generic_read_query()
+    private function generic_read_query($where = "")
     {
         return "
           WITH tags_array AS (
@@ -85,7 +86,8 @@ class Asset
           LEFT JOIN creature AS c ON (a.number = c. id)
           LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
           LEFT JOIN products_array AS p ON (a.id = p.asset_id)
-          LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id)
+          LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id) ".
+          $where ."
           ORDER BY a.created ASC
       ";
     }
@@ -113,8 +115,53 @@ class Asset
         return $stmt;
     }
 
+    public function searchUpsert()
+    {
+        $where = "WHERE number=:number AND order_=:order";
+        $query = $this->generic_read_query($where);
+
+        $stmt = $this->conn->prepare($query);
+
+        $this->number=htmlspecialchars(strip_tags($this->number));
+        $this->order=htmlspecialchars(strip_tags($this->order));
+
+        $stmt->bindParam(":number", $this->number, PDO::PARAM_INT);
+        $stmt->bindParam(":order", $this->order, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return $stmt;
+    }
+
+    public function search($searchTerm)
+    {
+        $where = "WHERE name LIKE CONCAT('%', ?, '%') OR number LIKE CONCAT('%', ?, '%')";
+        $query = $this->generic_read_query($where);
+
+        $stmt = $this->conn->prepare($query);
+
+        $searchTerm = htmlspecialchars(strip_tags($searchTerm));
+
+        $stmt->bindParam(1, $searchTerm);
+        $stmt->bindParam(2, $searchTerm);
+
+        $stmt->execute();
+
+        return $stmt;
+    }
+
     public function create()
     {
+        $creature = new Creature($this->conn);
+        if (!$creature->exists($this->number)) {
+            $creature->id = $this->number;
+            $creature->name = $this->name;
+            if (!$creature->create()) {
+                $this->error=$creature->error;
+                return false;
+            }
+        }
+
         $query = "INSERT INTO
                 " . $this->table_name . "
             SET
