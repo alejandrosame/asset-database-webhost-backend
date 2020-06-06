@@ -152,6 +152,9 @@ class Asset
 
     public function create()
     {
+        $this->number=htmlspecialchars(strip_tags($this->number));
+        $this->name=htmlspecialchars(strip_tags($this->name));
+
         $creature = new Creature($this->conn);
         if (!$creature->exists($this->number)) {
             $creature->id = $this->number;
@@ -170,17 +173,17 @@ class Asset
         $this->order=htmlspecialchars(strip_tags($this->order));
         $this->display_size=htmlspecialchars(strip_tags($this->display_size));
         $this->printed_size=htmlspecialchars(strip_tags($this->printed_size));
-        $this->number=htmlspecialchars(strip_tags($this->number));
-        $this->name=htmlspecialchars(strip_tags($this->name));
         $this->notes=htmlspecialchars(strip_tags($this->notes));
 
         $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":number", $this->number);
         $stmt->bindParam(":order", $this->order);
         $stmt->bindParam(":display_size", $this->display_size);
         $stmt->bindParam(":printed_size", $this->printed_size);
+        $stmt->bindParam(":number", $this->number);
         $stmt->bindParam(":notes", $this->notes);
+
+        $this->product=htmlspecialchars(strip_tags($this->product));
 
         try {
             if ($stmt->execute()) {

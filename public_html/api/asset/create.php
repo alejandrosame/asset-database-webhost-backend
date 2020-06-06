@@ -16,14 +16,15 @@ if (
   isset($data->name) &&
   isset($data->number) &&
   isset($data->order) &&
-  isset($data->display_size) &&
-  isset($data->printed_size)
+  isset($data->product) &&
+  isset($data->displaySize) &&
+  isset($data->printSize)
 ) {
     $asset->number=$data->number;
     $asset->name=$data->name;
     $asset->order=$data->order;
-    $asset->display_size=$data->display_size;
-    $asset->printed_size=$data->printed_size;
+    $asset->display_size=$data->displaySize;
+    $asset->printed_size=$data->printSize;
     if (isset($data->front_image)) {
         $asset->front_image=$data->front_image;
     }
