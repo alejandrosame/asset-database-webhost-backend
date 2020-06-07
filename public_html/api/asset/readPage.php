@@ -5,13 +5,14 @@ include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $pageInfo = getPagingInfo();
+$searchTerm = $_GET['searchTerm'];
 
 $database = new Database();
 $db = $database->getConnection();
 
 $asset = new Asset($db);
 
-$stmt = $asset->readPage($pageInfo["from"], $pageInfo["page_size"]);
+$stmt = $asset->readPage($pageInfo["from"], $pageInfo["page_size"], $searchTerm);
 $num = $stmt->rowCount();
 
 $arr=array();

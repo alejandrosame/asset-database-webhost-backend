@@ -88,7 +88,7 @@ class Asset
           LEFT JOIN products_array AS p ON (a.id = p.asset_id)
           LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id) ".
           $where ."
-          ORDER BY a.created ASC
+          ORDER BY a.number, a.order_ ASC
       ";
     }
 
@@ -100,15 +100,27 @@ class Asset
         return $stmt;
     }
 
-    public function readPage($from, $page_size)
+    public function readPage($from, $page_size, $searchTerm)
     {
-        $query = $this->generic_read_query() . "
+        $searchTerm = htmlspecialchars(strip_tags($searchTerm));
+        $where = "";
+        if (!empty($searchTerm)) {
+            $where = "WHERE name LIKE CONCAT('%', ?, '%') OR number LIKE CONCAT('%', ?, '%')";
+        }
+
+        $query = $this->generic_read_query($where) . "
          LIMIT ?, ?";
 
         $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(1, $from, PDO::PARAM_INT);
-        $stmt->bindParam(2, $page_size, PDO::PARAM_INT);
+        $startIndex=0;
+        if (!empty($searchTerm)) {
+            $startIndex=2;
+            $stmt->bindParam(1, $searchTerm);
+            $stmt->bindParam(2, $searchTerm);
+        }
+        $stmt->bindParam($startIndex+1, $from, PDO::PARAM_INT);
+        $stmt->bindParam($startIndex+2, $page_size, PDO::PARAM_INT);
 
         $stmt->execute();
 
@@ -127,23 +139,6 @@ class Asset
 
         $stmt->bindParam(":number", $this->number, PDO::PARAM_INT);
         $stmt->bindParam(":order", $this->order, PDO::PARAM_INT);
-
-        $stmt->execute();
-
-        return $stmt;
-    }
-
-    public function search($searchTerm)
-    {
-        $where = "WHERE name LIKE CONCAT('%', ?, '%') OR number LIKE CONCAT('%', ?, '%')";
-        $query = $this->generic_read_query($where);
-
-        $stmt = $this->conn->prepare($query);
-
-        $searchTerm = htmlspecialchars(strip_tags($searchTerm));
-
-        $stmt->bindParam(1, $searchTerm);
-        $stmt->bindParam(2, $searchTerm);
 
         $stmt->execute();
 
