@@ -57,6 +57,21 @@ class Asset
             JOIN ". $this->product_table_name ." p ON (ahp.product_id = p.id)
             GROUP BY (a.id)
           ),
+          default_images AS (
+            SELECT i_partitioned.*
+            FROM (
+              SELECT  *,
+                      ROW_NUMBER() OVER (PARTITION BY number,side ORDER BY created ASC) rn
+              FROM image
+            ) i_partitioned
+            WHERE i_partitioned.rn = 1
+          ),
+          default_front_images AS (
+            SELECT * FROM default_images WHERE side='front'
+          ),
+          default_back_images AS (
+            SELECT * FROM default_images WHERE side='back'
+          ),
           creature_references AS (
             SELECT  c.id as number,
                     JSON_OBJECT('number', c.id, 'name', c.name, 'ref', a.id) as ref
@@ -77,13 +92,24 @@ class Asset
             LEFT JOIN creature_references c ON (rc.creature = c.number)
             GROUP BY (rc.asset)
           )
-          SELECT  a.*,
+          SELECT  a.id AS id,
+                  a.order_ AS order_,
+                  a.display_size AS display_size,
+                  a.printed_size AS printed_size,
+                  a.notes AS notes,
+                  a.created AS created,
+                  a.updated AS updated,
+                  c.id AS number,
                   c.name AS name,
+                  COALESCE(a.front_image, dfi.id) AS front_image,
+                  COALESCE(a.back_image, dbi.id) AS back_image,
                   COALESCE(t.tags, '[]') AS tags,
                   COALESCE(p.products, '[]') AS products,
                   COALESCE(rc.refs, '[]') AS related_creatures
           FROM asset a
           LEFT JOIN creature AS c ON (a.number = c. id)
+          LEFT JOIN default_front_images AS dfi ON (a.number = dfi.number)
+          LEFT JOIN default_back_images AS dbi ON (a.number = dbi.number)
           LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
           LEFT JOIN products_array AS p ON (a.id = p.asset_id)
           LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id) ".
