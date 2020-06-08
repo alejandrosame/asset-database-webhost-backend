@@ -105,7 +105,7 @@ class Asset
         $searchTerm = htmlspecialchars(strip_tags($searchTerm));
         $where = "";
         if (!empty($searchTerm)) {
-            $where = "WHERE name LIKE CONCAT('%', ?, '%') OR number LIKE CONCAT('%', ?, '%')";
+            $where = "HAVING LOWER(CONCAT(name, ',', number, ',', tags, products)) LIKE CONCAT('%', ?, '%')";
         }
 
         $query = $this->generic_read_query($where) . "
@@ -115,9 +115,8 @@ class Asset
 
         $startIndex=0;
         if (!empty($searchTerm)) {
-            $startIndex=2;
+            $startIndex=1;
             $stmt->bindParam(1, $searchTerm);
-            $stmt->bindParam(2, $searchTerm);
         }
         $stmt->bindParam($startIndex+1, $from, PDO::PARAM_INT);
         $stmt->bindParam($startIndex+2, $page_size, PDO::PARAM_INT);
