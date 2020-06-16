@@ -27,6 +27,8 @@ class Asset
     public $tags;
     public $related_creatures;
 
+    public $error;
+
     // constructor with $db as database connection
     public function __construct($db)
     {
@@ -210,18 +212,260 @@ class Asset
                 $this->id=$this->conn->lastInsertId();
                 return true;
             }
-            error_log(json_encode($stmt->errorInfo()));
+            $this->error=json_encode($stmt->errorInfo());
             return false;
         } catch (\PDOException $e) {
             if ($e->errorInfo[1] == 1062) {
                 $this->error="Asset already exists.";
             } else {
-                $this->error=$e->errorInfo[2];
-                error_log(implode(":", $e->errorInfo));
+                $this->error=implode(":", $e->errorInfo);
             }
 
             return false;
         }
+    }
+
+    public function getId()
+    {
+        $query = "SELECT id FROM " . $this->table_name .
+               " WHERE number=:number AND order_=:order";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":number", $this->number, PDO::PARAM_INT);
+        $stmt->bindParam(":order", $this->order, PDO::PARAM_INT);
+
+        if (!$stmt->execute()) {
+            return false;
+        }
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->id = $row["id"];
+
+        return true;
+    }
+
+    public function update($data)
+    {
+        try {
+            $this->number=htmlspecialchars(strip_tags($data->number));
+            $this->order=htmlspecialchars(strip_tags($data->order));
+
+            if (!$this->getId()) {
+                $this->error="Asset not found";
+                return false;
+            }
+
+            $setSection = array();
+
+            if (isset($data->display_size)) {
+                $this->display_size = htmlspecialchars(strip_tags(
+                    $data->updateDisplaySize
+                ));
+                array_push($setSection, "display_size=:display_size");
+            }
+            if (isset($data->printed_size)) {
+                $this->printed_size=htmlspecialchars(strip_tags($data->updatePrintSize));
+                array_push($setSection, "printed_size=:printed_size");
+            }
+            if (isset($data->notes)) {
+                $this->notes=htmlspecialchars(strip_tags($data->updateNotes));
+                array_push($setSection, "notes=:notes");
+            }
+
+            if (!empty($setSection)) {
+                $setSection = implode(',', $setSection);
+
+                $query = "UPDATE " . $this->table_name . " SET " . $setSection . "
+              WHERE number=:number AND order_=:order";
+
+                $stmt = $this->conn->prepare($query);
+
+                $stmt->bindParam(":number", $this->number, PDO::PARAM_INT);
+                $stmt->bindParam(":order", $this->order, PDO::PARAM_INT);
+                if (isset($data->display_size) && !empty($this->display_size)) {
+                    $stmt->bindParam(":display_size", $this->display_size);
+                }
+                if (isset($data->printed_size) && !empty($this->printed_size)) {
+                    $stmt->bindParam(":printed_size", $this->printed_size);
+                }
+                if (isset($data->notes) && !empty($this->notes)) {
+                    $stmt->bindParam(":notes", $this->notes);
+                }
+
+                if (!$stmt->execute()) {
+                    $this->error=json_encode($stmt->errorInfo());
+                    return false;
+                }
+            }
+            if (isset($data->updateProduct) &&
+                !$this->updateProduct($data->updateProduct)
+               ) {
+                return false;
+            }
+            if (isset($data->deleteTags) && !$this->deleteTags($data->deleteTags)) {
+                return false;
+            }
+            if (isset($data->addTags) && !$this->addTags($data->addTags)) {
+                return false;
+            }
+            if (isset($data->deleteRelated) &&
+                !$this->deleteRelated($data->deleteRelated)
+               ) {
+                return false;
+            }
+            if (isset($data->addRelated) && !$this->addRelated($data->addRelated)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception $e) {
+            $this->error=implode(":", $e->errorInfo);
+            return false;
+        }
+    }
+
+    public function updateProduct($productName)
+    {
+        $productName=htmlspecialchars(strip_tags($productName));
+        if (!empty($productName)) {
+            return true;
+        }
+
+        $product = new Product($db);
+        $product->name = $productName;
+        $product->create();
+
+        $query = "INSERT INTO asset_has_product
+                 " . $this->table_name . "
+                 SET
+                  asset_id=:asset_id, product_id=:product_id";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":asset_id", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":product_id", $product->id, PDO::PARAM_INT);
+
+        if (!$stmt->execute()) {
+            $this->error=json_encode($stmt->errorInfo());
+            return false;
+        }
+
+        $query = "DELETE FROM asset_has_product
+                 " . $this->table_name . "
+                 WHERE
+                  product_id!=:product_id";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":product_id", $product->id, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return true;
+    }
+
+    public function deleteTags($array)
+    {
+        if (count($array) == 0) {
+            return true;
+        }
+
+        $inQuery = implode(',', array_fill(0, count($array), '?'));
+
+        $query = "DELETE FROM asset_has_tag WHERE tag_id IN
+          (SELECT id FROM tag WHERE name IN ( ". $inQuery ."))";
+
+        $stmt = $this->conn->prepare($query);
+
+        foreach ($array as $k => $el) {
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($k+1), $el);
+        }
+
+        if (!$stmt->execute()) {
+            $this->error=json_encode($stmt->errorInfo());
+            return false;
+        }
+
+        return true;
+    }
+
+    public function deleteRelated($array)
+    {
+        if (count($array) == 0) {
+            return true;
+        }
+
+        $inQuery = implode(',', array_fill(0, count($array), '?'));
+
+        $query = "DELETE FROM related_creatures WHERE creature IN (". $inQuery .")";
+
+        $stmt = $this->conn->prepare($query);
+
+        foreach ($array as $k => $el) {
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($k+1), $el, PDO::PARAM_INT);
+        }
+
+        if (!$stmt->execute()) {
+            $this->error=json_encode($stmt->errorInfo());
+            return false;
+        }
+
+        return true;
+    }
+
+    public function addTags($array)
+    {
+        if (count($array) == 0) {
+            return true;
+        }
+
+        $inQuery = implode(',', array_fill(0, count($array), '?'));
+
+        $query = "INSERT INTO asset_has_tag(asset_id, tag_id)
+          SELECT ?, id FROM tag WHERE name IN (". $inQuery .")";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(1, $this->id, PDO::PARAM_INT);
+        foreach ($array as $k => $el) {
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($k+2), $el);
+        }
+
+        if (!$stmt->execute()) {
+            $this->error=json_encode($stmt->errorInfo());
+            return false;
+        }
+
+        return true;
+    }
+
+    public function addRelated($array)
+    {
+        if (count($array) == 0) {
+            return true;
+        }
+
+        $inQuery = implode(',', array_fill(0, count($array), '?'));
+
+        $query = "INSERT INTO related_creatures(asset, creature)
+          SELECT ?, id FROM creature WHERE id IN (". $inQuery .")";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(1, $this->id, PDO::PARAM_INT);
+        foreach ($array as $k => $el) {
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($k+2), $el, PDO::PARAM_INT);
+        }
+
+        if (!$stmt->execute()) {
+            $this->error=json_encode($stmt->errorInfo());
+            return false;
+        }
+
+        return true;
     }
 
     public function delete()

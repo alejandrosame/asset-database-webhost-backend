@@ -49,11 +49,28 @@ class Tag
 
         $stmt->bindParam(":name", $this->name);
 
-        if ($stmt->execute()) {
-            $this->id=$this->conn->lastInsertId();
-            return true;
-        }
+        try {
+            if ($stmt->execute()) {
+                $this->id=$this->conn->lastInsertId();
+                return true;
+            }
+        } catch (\PDOException $e) {
+            if ($e->errorInfo[1] == 1062) { // Tag exists
+                $query = "SELECT id FROM " . $this->table_name . " WHERE name=:name";
 
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(":name", $this->name);
+                $stmt->execute();
+
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $this->id = $row["id"];
+
+                return true;
+            } else {
+                $this->error=$e->errorInfo[2];
+                error_log(implode(":", $e->errorInfo));
+            }
+        }
         return false;
     }
 
