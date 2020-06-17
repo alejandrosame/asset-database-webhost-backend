@@ -55,7 +55,7 @@ class Asset
           products_array AS (
             SELECT a.id AS asset_id, JSON_ARRAYAGG(p.name) AS products
             FROM ". $this->table_name ." a
-            JOIN asset_has_product ahp ON (a.id = ahp.product_id)
+            JOIN asset_has_product ahp ON (a.id = ahp.asset_id)
             JOIN ". $this->product_table_name ." p ON (ahp.product_id = p.id)
             GROUP BY (a.id)
           ),
@@ -328,32 +328,37 @@ class Asset
     public function updateProduct($productName)
     {
         $productName=htmlspecialchars(strip_tags($productName));
-        if (!empty($productName)) {
+        if (empty($productName)) {
             return true;
         }
 
-        $product = new Product($db);
-        $product->name = $productName;
-        $product->create();
+        error_log("Before INSERT");
 
         $query = "INSERT INTO asset_has_product
-                 " . $this->table_name . "
-                 SET
-                  asset_id=:asset_id, product_id=:product_id";
+                  SET asset_id=:asset_id, product_id=:product_id";
+
+        $query = "INSERT INTO asset_has_product(asset_id, product_id)
+          SELECT :asset_id, id FROM product WHERE name LIKE :product_name";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":asset_id", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":product_id", $product->id, PDO::PARAM_INT);
+        $stmt->bindParam(":product_name", $productName);
 
-        if (!$stmt->execute()) {
+        try {
+            if ($stmt->execute()) {
+                return true;
+            }
             $this->error=json_encode($stmt->errorInfo());
+
+            return false;
+        } catch (\PDOException $e) {
+            $this->error=implode(":", $e->errorInfo);
             return false;
         }
 
-        $query = "DELETE FROM asset_has_product
-                 " . $this->table_name . "
-                 WHERE
-                  product_id!=:product_id";
+        error_log("Before DELETE");
+
+        $query = "DELETE FROM asset_has_product WHERE product_id!=:product_id";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":product_id", $product->id, PDO::PARAM_INT);
