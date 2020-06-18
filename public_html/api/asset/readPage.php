@@ -5,7 +5,10 @@ include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $pageInfo = getPagingInfo();
-$searchTerm = $_GET['searchTerm'];
+$searchTerm = null;
+if (isset($_GET['searchTerm'])) {
+    $searchTerm = $_GET['searchTerm'];
+}
 
 $database = new Database();
 $db = $database->getConnection();
