@@ -20,10 +20,11 @@ if (!$user->verifyUser($data->username, $data->password)) {
 $token = createToken($user);
 http_response_code(200);
 echo json_encode(
-    array(
+    array_merge(
+      $user->toArray(),
+      array(
         "token" => $token["token"],
-        "id" => $user->id,
-        "isAdmin" => boolval($user->isadmin),
         "expiresIn" => ($token["tokenData"]["exp"] - $token["tokenData"]["iat"])
-    )
+      )
+  )
 );

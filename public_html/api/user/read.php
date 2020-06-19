@@ -18,17 +18,7 @@ $users_arr=array();
 $users_arr["users"]=array();
 
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    extract($row);
-
-    $user_item=array(
-        "id" => $id,
-        "username" => $username,
-        "admin" => (boolean)json_decode(strtolower($isadmin)),
-        "created" => $created,
-        "updated" => $updated
-    );
-
-    array_push($users_arr["users"], $user_item);
+    array_push($users_arr["users"], $user->toArray($row));
 }
 
 http_response_code(200);

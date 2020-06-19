@@ -189,4 +189,23 @@ class User
 
         return false;
     }
+
+    public function toArray($row=null)
+    {
+        if (isset($row)) {
+            $this->id = $row["id"];
+            $this->username = $row["username"];
+            $this->isadmin = $row["isadmin"];
+            $this->created = $row["created"];
+            $this->updated = $row["updated"];
+        }
+
+        return array(
+          "id" => $this->id,
+          "username" => $this->username,
+          "isAdmin" => (boolean)json_decode(strtolower($this->isadmin)),
+          "created" => $this->created,
+          "updated" => $this->updated
+      );
+    }
 }
