@@ -45,76 +45,71 @@ class Asset
     private function generic_read_query($where = "")
     {
         return "
-          WITH tags_array AS (
-            SELECT a.id AS asset_id, JSON_ARRAYAGG(t.name) AS tags
-            FROM ". $this->table_name ." a
-            JOIN asset_has_tag aht ON (a.id = aht.asset_id)
-            JOIN ". $this->tag_table_name ." t ON (aht.tag_id = t.id)
-            GROUP BY (a.id)
-          ),
-          products_array AS (
-            SELECT a.id AS asset_id, JSON_ARRAYAGG(p.name) AS products
-            FROM ". $this->table_name ." a
-            JOIN asset_has_product ahp ON (a.id = ahp.asset_id)
-            JOIN ". $this->product_table_name ." p ON (ahp.product_id = p.id)
-            GROUP BY (a.id)
-          ),
-          default_images AS (
-            SELECT i_partitioned.*
-            FROM (
-              SELECT  *,
-                      ROW_NUMBER() OVER (PARTITION BY number,side ORDER BY created ASC) rn
-              FROM image
-            ) i_partitioned
-            WHERE i_partitioned.rn = 1
-          ),
-          default_front_images AS (
-            SELECT * FROM default_images WHERE side='front'
-          ),
-          default_back_images AS (
-            SELECT * FROM default_images WHERE side='back'
-          ),
-          creature_references AS (
-            SELECT  c.id as number,
-                    JSON_OBJECT('number', c.id, 'name', c.name, 'ref', a.id) as ref
-            FROM creature c
-            LEFT JOIN (
-              SELECT a_partitioned.*
-              FROM (
-                SELECT  *,
-                        ROW_NUMBER() OVER (PARTITION BY number ORDER BY order_ ASC) rn
-                FROM ". $this->table_name ."
-              ) a_partitioned
-              WHERE a_partitioned.rn = 1) a
-            ON (c.id = a.number)
-          ),
-          related_creatures_array AS (
-            SELECT rc.asset AS id, JSON_ARRAYAGG(c.ref) AS refs
-            FROM related_creatures rc
-            LEFT JOIN creature_references c ON (rc.creature = c.number)
-            GROUP BY (rc.asset)
-          )
-          SELECT  a.id AS id,
-                  a.order_ AS order_,
-                  a.display_size AS display_size,
-                  a.printed_size AS printed_size,
-                  a.notes AS notes,
-                  a.created AS created,
-                  a.updated AS updated,
-                  c.id AS number,
-                  c.name AS name,
-                  COALESCE(a.front_image, dfi.id) AS front_image,
-                  COALESCE(a.back_image, dbi.id) AS back_image,
-                  COALESCE(t.tags, '[]') AS tags,
-                  COALESCE(p.products, '[]') AS products,
-                  COALESCE(rc.refs, '[]') AS related_creatures
-          FROM asset a
-          LEFT JOIN creature AS c ON (a.number = c. id)
-          LEFT JOIN default_front_images AS dfi ON (a.number = dfi.number)
-          LEFT JOIN default_back_images AS dbi ON (a.number = dbi.number)
-          LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
-          LEFT JOIN products_array AS p ON (a.id = p.asset_id)
-          LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id) ".
+        SELECT  a.id AS id,
+                a.order_ AS order_,
+                a.display_size AS display_size,
+                a.printed_size AS printed_size,
+                a.notes AS notes,
+                a.created AS created,
+                a.updated AS updated,
+                c.id AS number,
+                c.name AS name,
+                COALESCE(a.front_image, dfi.id) AS front_image,
+                COALESCE(a.back_image, dbi.id) AS back_image,
+                COALESCE(t.tags, '[]') AS tags,
+                COALESCE(p.products, '[]') AS products,
+                COALESCE(rc.refs, '[]') AS related_creatures
+        FROM asset a
+        LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
+        LEFT JOIN products_array AS p ON (a.id = p.asset_id)
+        LEFT JOIN creature AS c ON (a.number = c. id)
+        LEFT JOIN related_creatures_array AS rc ON (a.id = rc.id)
+        LEFT JOIN (
+          SELECT i_partitioned.*
+          FROM (
+            SELECT
+                *,
+                @row_number:=CASE
+                    WHEN @number = number
+                      THEN
+                          @row_number + 1
+                      ELSE
+                           1
+                    END AS rn,
+                @number:=number,
+                @side:=side
+            FROM
+                image,
+                (SELECT @number:=0,@row_number:=0) as t
+            WHERE side='front'
+            ORDER BY
+                created ASC
+          ) i_partitioned
+          WHERE i_partitioned.rn = 1
+        ) AS dfi ON (a.number = dfi.number)
+        LEFT JOIN (
+          SELECT i_partitioned.*
+          FROM (
+            SELECT
+                *,
+                @row_number:=CASE
+                    WHEN @number = number
+                      THEN
+                          @row_number + 1
+                      ELSE
+                           1
+                    END AS rn,
+                @number:=number,
+                @side:=side
+            FROM
+                image,
+                (SELECT @number:=0,@row_number:=0) as t
+            WHERE side='back'
+            ORDER BY
+                created ASC
+          ) i_partitioned
+          WHERE i_partitioned.rn = 1
+        ) AS dbi ON (a.number = dbi.number) ".
           $where ."
           ORDER BY a.number, a.order_ ASC
       ";
