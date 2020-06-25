@@ -89,6 +89,33 @@ class User
         return false;
     }
 
+    public function updatePassword()
+    {
+        include __DIR__.'/../config/core.php';
+
+        $this->username=htmlspecialchars(strip_tags($this->username));
+        $this->password=htmlspecialchars(strip_tags($this->password));
+        $this->password=hash_hmac("sha512", $this->password, $pepper);
+        $this->password=password_hash($this->password, PASSWORD_DEFAULT);
+
+        $query = "UPDATE
+                " . $this->table_name . "
+            SET password=:password
+            WHERE username=:username";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":username", $this->username);
+        $stmt->bindParam(":password", $this->password);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+
+        error_log(implode(":", $stmt->errorInfo()));
+        return false;
+    }
+
     public function read()
     {
         $query = "SELECT id, username, isadmin, created, updated

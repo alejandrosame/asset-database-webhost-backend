@@ -67,8 +67,6 @@ function validateToken()
     include __DIR__ .'/../config/core.php';
     require __DIR__.'/../vendor/autoload.php';
 
-    $DEFAULT = null;
-
     $token=getBearerToken();
     if (!$token) {
         http_response_code(401);
@@ -95,8 +93,6 @@ function isUser($checkIsAdmin = false)
 
     include_once __DIR__ .'/../config/database.php';
     include_once __DIR__ .'/../objects/user.php';
-
-    $DEFAULT = null;
 
     $database = new Database();
     $db = $database->getConnection();
