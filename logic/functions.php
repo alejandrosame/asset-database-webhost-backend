@@ -202,3 +202,42 @@ function getPagingInfo()
       "from" => ($page_size * $page) - $page_size
     );
 }
+/*
+  Format related_creatures for CSV export
+ */
+function formatCSVrelated($JSON)
+{
+    $related = json_decode($JSON);
+    $arr = array();
+    foreach ($related as $ref) {
+        array_push($arr, $ref->number);
+    }
+    return implode(',', $arr);
+}
+/*
+  Format produc for CSV export
+ */
+function formatCSVarray($arrayJSON)
+{
+    $arr = json_decode($arrayJSON);
+    return implode(',', $arr);
+}
+/*
+  Format row for CSV export
+ */
+function formatCSVrow($row)
+{
+    //"number", "name", "order", "printSize", "displaySize", "product", "tags", "notes", "related"));
+    $newRow = array(
+      $row["number"],
+      $row["name"],
+      $row["order_"],
+      $row["printed_size"],
+      $row["display_size"],
+      formatCSVarray($row["products"]),
+      formatCSVarray($row["tags"]),
+      $row["notes"],
+      formatCSVrelated($row["related_creatures"])
+    );
+    return $newRow;
+}
