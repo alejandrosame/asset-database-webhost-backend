@@ -2,6 +2,7 @@
 include_once dirname(__FILE__).'/tag.php';
 include_once dirname(__FILE__).'/product.php';
 include_once dirname(__FILE__).'/creature.php';
+include_once dirname(__FILE__).'/../logic/functions.php';
 
 class Asset
 {
@@ -42,8 +43,11 @@ class Asset
         unset($product);
     }
 
-    private function generic_read_query($where = "")
-    {
+    private function generic_read_query(
+        $prefilter_products = "",
+        $prefilter_tags = "",
+        $where = ""
+    ) {
         return "
         SELECT  a.id AS id,
                 a.order_ AS order_,
@@ -60,6 +64,8 @@ class Asset
                 COALESCE(p.products, '[]') AS products,
                 COALESCE(rc.refs, '[]') AS related_creatures
         FROM asset a
+        ". $prefilter_products ."
+        ". $prefilter_tags ."
         LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
         LEFT JOIN products_array AS p ON (a.id = p.asset_id)
         LEFT JOIN creature AS c ON (a.number = c. id)
@@ -109,8 +115,8 @@ class Asset
                 created ASC
           ) i_partitioned
           WHERE i_partitioned.rn = 1
-        ) AS dbi ON (a.number = dbi.number) ".
-          $where ."
+        ) AS dbi ON (a.number = dbi.number)
+        ". $where ."
           ORDER BY a.number, a.order_ ASC
       ";
     }
@@ -123,26 +129,114 @@ class Asset
         return $stmt;
     }
 
-    public function readPage($from, $page_size, $searchTerm)
-    {
+    public function readPage(
+        $from,
+        $pageSize,
+        $showProducts,
+        $hideProducts,
+        $showTags,
+        $hideTags,
+        $searchTerm
+    ) {
         $searchTerm = htmlspecialchars(strip_tags($searchTerm));
+        $showProducts = asArray(htmlspecialchars(strip_tags($showProducts)));
+        $hideProducts = asArray(htmlspecialchars(strip_tags($hideProducts)));
+        $showTags = asArray(htmlspecialchars(strip_tags($showTags)));
+        $hideTags = asArray(htmlspecialchars(strip_tags($hideTags)));
+
+        $prefilter_products = array();
+        $prefilter_tags = array();
         $where = "";
+
+        if (count($showProducts) > 0) {
+            array_push(
+                $prefilter_products,
+                "product_id IN (SELECT id FROM product WHERE name IN (".
+                implode(',', array_fill(0, count($showProducts), '?'))
+                ."))"
+            );
+        }
+        if (count($hideProducts) > 0) {
+            array_push(
+                $prefilter_products,
+                "product_id NOT IN (SELECT id FROM product WHERE name IN (".
+                implode(',', array_fill(0, count($hideProducts), '?'))
+                ."))"
+            );
+        }
+        $prefilter_products = implode($prefilter_products, " AND ");
+        if (!empty($prefilter_products)) {
+            $prefilter_products = "RIGHT JOIN (
+              SELECT asset_id FROM asset_has_product
+              WHERE ". $prefilter_products ."
+              ) product_filter ON (a.id = product_filter.asset_id)";
+        }
+
+        if (count($showTags) > 0) {
+            array_push(
+                $prefilter_tags,
+                "tag_id IN (SELECT id FROM tag WHERE name IN (".
+                implode(',', array_fill(0, count($showTags), '?'))
+                ."))"
+            );
+        }
+        if (count($hideTags) > 0) {
+            array_push(
+                $prefilter_tags,
+                "tag_id NOT IN (SELECT id FROM tag WHERE name IN (".
+                implode(',', array_fill(0, count($hideTags), '?'))
+                ."))"
+            );
+        }
+        $prefilter_tags = implode($prefilter_tags, " AND ");
+        if (!empty($prefilter_tags)) {
+            $prefilter_tags = "RIGHT JOIN (
+              SELECT asset_id FROM asset_has_tag
+              WHERE ". $prefilter_tags ."
+              ) tag_filter ON (a.id = tag_filter.asset_id)";
+        }
+
         if (!empty($searchTerm)) {
             $where = "HAVING LOWER(CONCAT(name, ',', number, ',', tags, products)) LIKE CONCAT('%', ?, '%')";
         }
 
-        $query = $this->generic_read_query($where) . "
-         LIMIT ?, ?";
+        $query = $this->generic_read_query(
+            $prefilter_products,
+            $prefilter_tags,
+            $where
+        ) . "
+            LIMIT ?, ?";
 
         $stmt = $this->conn->prepare($query);
 
         $startIndex=0;
+        foreach ($showProducts as $k => $el) {
+            $startIndex = $startIndex+1;
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($startIndex+$k), $el);
+        }
+        foreach ($hideProducts as $k => $el) {
+            $startIndex = $startIndex+1;
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($startIndex+$k), $el);
+        }
+        foreach ($showTags as $k => $el) {
+            $startIndex = $startIndex+1;
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($startIndex+$k), $el);
+        }
+        foreach ($hideTags as $k => $el) {
+            $startIndex = $startIndex+1;
+            $el = htmlspecialchars(strip_tags($el));
+            $stmt->bindParam(($startIndex+$k), $el);
+        }
+
         if (!empty($searchTerm)) {
-            $startIndex=1;
-            $stmt->bindParam(1, $searchTerm);
+            $startIndex=$startIndex+1;
+            $stmt->bindParam($startIndex, $searchTerm);
         }
         $stmt->bindParam($startIndex+1, $from, PDO::PARAM_INT);
-        $stmt->bindParam($startIndex+2, $page_size, PDO::PARAM_INT);
+        $stmt->bindParam($startIndex+2, $pageSize, PDO::PARAM_INT);
 
         $stmt->execute();
 
@@ -350,8 +444,6 @@ class Asset
             $this->error=implode(":", $e->errorInfo);
             return false;
         }
-
-        error_log("Before DELETE");
 
         $query = "DELETE FROM asset_has_product WHERE product_id!=:product_id";
 

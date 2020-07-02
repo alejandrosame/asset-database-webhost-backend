@@ -194,13 +194,23 @@ function getCheckInt($field, $zeroIsValid = false)
 function getPagingInfo()
 {
     $page = getCheckInt('page');
-    $page_size = getCheckInt('page_size');
+    $pageSize = getCheckInt('pageSize');
 
     return array(
       "page" => $page,
-      "page_size" => $page_size,
-      "from" => ($page_size * $page) - $page_size
+      "pageSize" => $pageSize,
+      "from" => ($pageSize * $page) - $pageSize
     );
+}
+/*
+ * Get parameter value
+ */
+function getParameter($param)
+{
+    if (isset($_GET[$param])) {
+        return $_GET[$param];
+    }
+    return null;
 }
 /*
   Format related_creatures for CSV export
@@ -215,7 +225,7 @@ function formatCSVrelated($JSON)
     return implode(',', $arr);
 }
 /*
-  Format produc for CSV export
+  Format product for CSV export
  */
 function formatCSVarray($arrayJSON)
 {
@@ -240,4 +250,14 @@ function formatCSVrow($row)
       formatCSVrelated($row["related_creatures"])
     );
     return $newRow;
+}
+/*
+  Format as array
+ */
+function asArray($string)
+{
+    if (empty($string)) {
+        return array();
+    }
+    return explode(',', $string);
 }

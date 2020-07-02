@@ -5,17 +5,26 @@ include_once __DIR__.'/../../../logic/functions.php';
 
 setHeaders();
 $pageInfo = getPagingInfo();
-$searchTerm = null;
-if (isset($_GET['searchTerm'])) {
-    $searchTerm = $_GET['searchTerm'];
-}
+$showProducts = getParameter('showProducts');
+$hideProducts = getParameter('hideProducts');
+$showTags = getParameter('showTags');
+$hideTags = getParameter('hideTags');
+$searchTerm = getParameter('searchTerm');
 
 $database = new Database();
 $db = $database->getConnection();
 
 $asset = new Asset($db);
 
-$stmt = $asset->readPage($pageInfo["from"], $pageInfo["page_size"], $searchTerm);
+$stmt = $asset->readPage(
+    $pageInfo["from"],
+    $pageInfo["pageSize"],
+    $showProducts,
+    $hideProducts,
+    $showTags,
+    $hideTags,
+    $searchTerm
+);
 $num = $stmt->rowCount();
 
 $arr=array();
