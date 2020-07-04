@@ -44,8 +44,7 @@ class Asset
     }
 
     private function generic_read_query(
-        $prefilter_products = "",
-        $prefilter_tags = "",
+        $prefilter = "",
         $where = ""
     ) {
         return "
@@ -64,8 +63,7 @@ class Asset
                 COALESCE(p.products, '[]') AS products,
                 COALESCE(rc.refs, '[]') AS related_creatures
         FROM asset a
-        ". $prefilter_products ."
-        ". $prefilter_tags ."
+        ". $prefilter ."
         LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
         LEFT JOIN products_array AS p ON (a.id = p.asset_id)
         LEFT JOIN creature AS c ON (a.number = c. id)
@@ -144,56 +142,59 @@ class Asset
         $showTags = asArray(htmlspecialchars(strip_tags($showTags)));
         $hideTags = asArray(htmlspecialchars(strip_tags($hideTags)));
 
-        $prefilter_products = array();
-        $prefilter_tags = array();
+        $prefilter = "";
         $where = "";
 
         if (count($showProducts) > 0) {
-            array_push(
-                $prefilter_products,
-                "product_id IN (SELECT id FROM product WHERE name IN (".
-                implode(',', array_fill(0, count($showProducts), '?'))
-                ."))"
-            );
+            $inQuery = implode(',', array_fill(0, count($showProducts), '?'));
+            $prefilter = $prefilter . "
+            INNER JOIN (
+              SELECT asset_id FROM asset_has_product
+              WHERE product_id IN (
+                SELECT id FROM product WHERE name IN  (". $inQuery .")
+              )
+            ) show_product_filter ON (a.id = show_product_filter.asset_id)";
         }
         if (count($hideProducts) > 0) {
-            array_push(
-                $prefilter_products,
-                "product_id NOT IN (SELECT id FROM product WHERE name IN (".
-                implode(',', array_fill(0, count($hideProducts), '?'))
-                ."))"
-            );
-        }
-        $prefilter_products = implode($prefilter_products, " AND ");
-        if (!empty($prefilter_products)) {
-            $prefilter_products = "RIGHT JOIN (
-              SELECT asset_id FROM asset_has_product
-              WHERE ". $prefilter_products ."
-              ) product_filter ON (a.id = product_filter.asset_id)";
+            $inQuery = implode(',', array_fill(0, count($hideProducts), '?'));
+            $prefilter = $prefilter . "
+            INNER JOIN (
+              SELECT id as asset_id FROM asset
+              WHERE id NOT IN (
+                SELECT id FROM asset WHERE id IN (
+                  SELECT asset_id FROM asset_has_product
+                  WHERE product_id IN (
+                    SELECT id FROM product WHERE name IN  (". $inQuery .")
+                  )
+                )
+              )
+            ) hide_product_filter ON (a.id = hide_product_filter.asset_id)";
         }
 
         if (count($showTags) > 0) {
-            array_push(
-                $prefilter_tags,
-                "tag_id IN (SELECT id FROM tag WHERE name IN (".
-                implode(',', array_fill(0, count($showTags), '?'))
-                ."))"
-            );
+            $inQuery = implode(',', array_fill(0, count($showTags), '?'));
+            $prefilter = $prefilter . "
+            INNER JOIN (
+              SELECT asset_id FROM asset_has_tag
+              WHERE tag_id IN (
+                SELECT id FROM tag WHERE name IN  (". $inQuery .")
+              )
+            ) show_tag_filter ON (a.id = show_tag_filter.asset_id)";
         }
         if (count($hideTags) > 0) {
-            array_push(
-                $prefilter_tags,
-                "tag_id NOT IN (SELECT id FROM tag WHERE name IN (".
-                implode(',', array_fill(0, count($hideTags), '?'))
-                ."))"
-            );
-        }
-        $prefilter_tags = implode($prefilter_tags, " AND ");
-        if (!empty($prefilter_tags)) {
-            $prefilter_tags = "RIGHT JOIN (
-              SELECT asset_id FROM asset_has_tag
-              WHERE ". $prefilter_tags ."
-              ) tag_filter ON (a.id = tag_filter.asset_id)";
+            $inQuery = implode(',', array_fill(0, count($hideTags), '?'));
+            $prefilter = $prefilter . "
+            INNER JOIN (
+              SELECT id as asset_id FROM asset
+              WHERE id NOT IN (
+                SELECT id FROM asset WHERE id IN (
+                  SELECT asset_id FROM asset_has_tag
+                  WHERE tag_id IN (
+                    SELECT id FROM tag WHERE name IN  (". $inQuery .")
+                  )
+                )
+              )
+            ) hide_tag_filter ON (a.id = hide_tag_filter.asset_id)";
         }
 
         if (!empty($searchTerm)) {
@@ -201,34 +202,32 @@ class Asset
         }
 
         $query = $this->generic_read_query(
-            $prefilter_products,
-            $prefilter_tags,
+            $prefilter,
             $where
         ) . "
             LIMIT ?, ?";
-
         $stmt = $this->conn->prepare($query);
 
         $startIndex=0;
-        foreach ($showProducts as $k => $el) {
+        foreach ($showProducts as $k => &$el) {
             $startIndex = $startIndex+1;
             $el = htmlspecialchars(strip_tags($el));
-            $stmt->bindParam(($startIndex+$k), $el);
+            $stmt->bindParam($startIndex, $el);
         }
-        foreach ($hideProducts as $k => $el) {
+        foreach ($hideProducts as $k => &$el) {
             $startIndex = $startIndex+1;
             $el = htmlspecialchars(strip_tags($el));
-            $stmt->bindParam(($startIndex+$k), $el);
+            $stmt->bindParam($startIndex, $el);
         }
-        foreach ($showTags as $k => $el) {
+        foreach ($showTags as $k => &$el) {
             $startIndex = $startIndex+1;
             $el = htmlspecialchars(strip_tags($el));
-            $stmt->bindParam(($startIndex+$k), $el);
+            $stmt->bindParam($startIndex, $el);
         }
-        foreach ($hideTags as $k => $el) {
+        foreach ($hideTags as $k => &$el) {
             $startIndex = $startIndex+1;
             $el = htmlspecialchars(strip_tags($el));
-            $stmt->bindParam(($startIndex+$k), $el);
+            $stmt->bindParam($startIndex, $el);
         }
 
         if (!empty($searchTerm)) {
@@ -239,7 +238,6 @@ class Asset
         $stmt->bindParam($startIndex+2, $pageSize, PDO::PARAM_INT);
 
         $stmt->execute();
-
         return $stmt;
     }
 
