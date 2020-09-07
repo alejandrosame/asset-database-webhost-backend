@@ -292,8 +292,6 @@ class Asset
         $stmt->bindParam(":number", $this->number);
         $stmt->bindParam(":notes", $this->notes);
 
-        $this->product=htmlspecialchars(strip_tags($this->product));
-
         try {
             if ($stmt->execute()) {
                 $this->id=$this->conn->lastInsertId();

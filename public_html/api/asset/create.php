@@ -16,7 +16,6 @@ if (
   isset($data->name) &&
   isset($data->number) &&
   isset($data->order) &&
-  isset($data->product) &&
   isset($data->displaySize) &&
   isset($data->printSize)
 ) {
