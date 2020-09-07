@@ -244,7 +244,7 @@ class Asset
     public function searchUpsert()
     {
         $where = "HAVING number=:number AND order_=:order";
-        $query = $this->generic_read_query($where);
+        $query = $this->generic_read_query("", $where);
 
         $stmt = $this->conn->prepare($query);
 
