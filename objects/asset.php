@@ -417,8 +417,6 @@ class Asset
             return true;
         }
 
-        error_log("Before INSERT");
-
         $query = "INSERT INTO asset_has_product
                   SET asset_id=:asset_id, product_id=:product_id";
 

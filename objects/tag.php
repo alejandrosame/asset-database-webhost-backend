@@ -10,6 +10,7 @@ class Tag
     public $name;
     public $created;
     public $updated;
+    public $error;
 
     // constructor with $db as database connection
     public function __construct($db)
@@ -54,6 +55,7 @@ class Tag
                 $this->id=$this->conn->lastInsertId();
                 return true;
             }
+            error_log(implode(":", $stmt->errorInfo()));
         } catch (\PDOException $e) {
             if ($e->errorInfo[1] == 1062) { // Tag exists
                 $query = "SELECT id FROM " . $this->table_name . " WHERE name=:name";
