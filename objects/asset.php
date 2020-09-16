@@ -277,18 +277,14 @@ class Asset
         $query = "INSERT INTO
                 " . $this->table_name . "
             SET
-                order_=:order, display_size=:display_size, printed_size=:printed_size, number=:number, notes=:notes";
+                order_=:order, number=:number, notes=:notes";
 
         $this->order=htmlspecialchars(strip_tags($this->order));
-        $this->display_size=htmlspecialchars(strip_tags($this->display_size));
-        $this->printed_size=htmlspecialchars(strip_tags($this->printed_size));
         $this->notes=htmlspecialchars(strip_tags($this->notes));
 
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(":order", $this->order);
-        $stmt->bindParam(":display_size", $this->display_size);
-        $stmt->bindParam(":printed_size", $this->printed_size);
         $stmt->bindParam(":number", $this->number);
         $stmt->bindParam(":notes", $this->notes);
 
@@ -343,13 +339,13 @@ class Asset
 
             $setSection = array();
 
-            if (isset($data->display_size)) {
+            if (isset($data->updateDisplaySize)) {
                 $this->display_size = htmlspecialchars(strip_tags(
                     $data->updateDisplaySize
                 ));
                 array_push($setSection, "display_size=:display_size");
             }
-            if (isset($data->printed_size)) {
+            if (isset($data->updatePrintSize)) {
                 $this->printed_size=htmlspecialchars(strip_tags($data->updatePrintSize));
                 array_push($setSection, "printed_size=:printed_size");
             }
@@ -368,10 +364,10 @@ class Asset
 
                 $stmt->bindParam(":number", $this->number, PDO::PARAM_INT);
                 $stmt->bindParam(":order", $this->order, PDO::PARAM_INT);
-                if (isset($data->display_size) && !empty($this->display_size)) {
+                if (isset($data->updateDisplaySize)) {
                     $stmt->bindParam(":display_size", $this->display_size);
                 }
-                if (isset($data->printed_size) && !empty($this->printed_size)) {
+                if (isset($data->updatePrintSize)) {
                     $stmt->bindParam(":printed_size", $this->printed_size);
                 }
                 if (isset($data->notes) && !empty($this->notes)) {
@@ -405,7 +401,7 @@ class Asset
 
             return true;
         } catch (Exception $e) {
-            $this->error=implode(":", $e->errorInfo);
+            $this->error=$e->getMessage();
             return false;
         }
     }
