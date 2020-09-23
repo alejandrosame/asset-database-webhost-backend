@@ -502,6 +502,7 @@ class Asset
             return true;
         }
 
+
         $inQuery = implode(',', array_fill(0, count($array), '?'));
 
         $query = "INSERT INTO asset_has_tag(asset_id, tag_id)
@@ -510,7 +511,7 @@ class Asset
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(1, $this->id, PDO::PARAM_INT);
-        foreach ($array as $k => $el) {
+        foreach ($array as $k => &$el) {
             $el = htmlspecialchars(strip_tags($el));
             $stmt->bindParam(($k+2), $el);
         }
