@@ -76,6 +76,31 @@ class DisplaySize
         return false;
     }
 
+    public function update($name)
+    {
+        try {
+            $this->name=htmlspecialchars(strip_tags($daname));
+
+            $query = "UPDATE " . $this->table_name . " SET name=:name
+              WHERE id=:id";
+
+            $stmt = $this->conn->prepare($query);
+
+            $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
+            $stmt->bindParam(":name", $name);
+
+            if (!$stmt->execute()) {
+                $this->error=json_encode($stmt->errorInfo());
+                return false;
+            }
+
+            return true;
+        } catch (Exception $e) {
+            $this->error=$e->getMessage();
+            return false;
+        }
+    }
+
     public function delete()
     {
         $this->id=htmlspecialchars(strip_tags($this->id));
