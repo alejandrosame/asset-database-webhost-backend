@@ -44,7 +44,6 @@ class Asset
     }
 
     private function generic_read_query(
-        $prefilter = "",
         $where = ""
     ) {
         return "
@@ -63,7 +62,6 @@ class Asset
                 COALESCE(p.products, '[]') AS products,
                 COALESCE(rc.refs, '[]') AS related_creatures
         FROM asset a
-        ". $prefilter ."
         LEFT JOIN tags_array AS t ON (a.id = t.asset_id)
         LEFT JOIN products_array AS p ON (a.id = p.asset_id)
         LEFT JOIN creature AS c ON (a.number = c. id)
@@ -146,55 +144,48 @@ class Asset
         $where = "";
 
         if (count($showProducts) > 0) {
-            $inQuery = implode(',', array_fill(0, count($showProducts), '?'));
-            $prefilter = $prefilter . "
-            INNER JOIN (
-              SELECT asset_id FROM asset_has_product
-              WHERE product_id IN (
-                SELECT id FROM product WHERE name IN  (". $inQuery .")
-              )
-            ) show_product_filter ON (a.id = show_product_filter.asset_id)";
+            $extension = implode(' AND
+              ', array_fill(0, count($showProducts), "LOWER(products) LIKE CONCAT('%', ?, '%')"));
+            $where = $where . "
+            ". $extension;
         }
         if (count($hideProducts) > 0) {
-            $inQuery = implode(',', array_fill(0, count($hideProducts), '?'));
-            $prefilter = $prefilter . "
-            INNER JOIN (
-              SELECT id as asset_id FROM asset
-              WHERE id NOT IN (
-                SELECT id FROM asset WHERE id IN (
-                  SELECT asset_id FROM asset_has_product
-                  WHERE product_id IN (
-                    SELECT id FROM product WHERE name IN  (". $inQuery .")
-                  )
-                )
-              )
-            ) hide_product_filter ON (a.id = hide_product_filter.asset_id)";
+            $extension = implode(' AND
+              ', array_fill(0, count($hideProducts), "LOWER(products) NOT LIKE CONCAT('%', ?, '%')")
+            );
+
+            if (!empty($where)) {
+                $where = $where . " AND ";
+            }
+            $where = $where . "
+            ". $extension;
         }
 
         if (count($showTags) > 0) {
-            $inQuery = implode(',', array_fill(0, count($showTags), '?'));
-            $prefilter = $prefilter . "
-            INNER JOIN (
-              SELECT asset_id FROM asset_has_tag
-              WHERE tag_id IN (
-                SELECT id FROM tag WHERE name IN  (". $inQuery .")
-              )
-            ) show_tag_filter ON (a.id = show_tag_filter.asset_id)";
+            $extension = implode(' AND
+              ', array_fill(0, count($showTags), "LOWER(tags) LIKE CONCAT('%', ?, '%')")
+            );
+
+            if (!empty($where)) {
+                $where = $where . " AND ";
+            }
+            $where = $where . "
+            ". $extension;
         }
         if (count($hideTags) > 0) {
-            $inQuery = implode(',', array_fill(0, count($hideTags), '?'));
-            $prefilter = $prefilter . "
-            INNER JOIN (
-              SELECT id as asset_id FROM asset
-              WHERE id NOT IN (
-                SELECT id FROM asset WHERE id IN (
-                  SELECT asset_id FROM asset_has_tag
-                  WHERE tag_id IN (
-                    SELECT id FROM tag WHERE name IN  (". $inQuery .")
-                  )
-                )
-              )
-            ) hide_tag_filter ON (a.id = hide_tag_filter.asset_id)";
+            $extension = implode(' AND
+              ', array_fill(0, count($hideTags), "LOWER(tags) NOT LIKE CONCAT('%', ?, '%')")
+            );
+
+            if (!empty($where)) {
+                $where = $where . " AND ";
+            }
+            $where = $where . "
+            ". $extension;
+        }
+
+        if (!empty($where)) {
+            $where = "WHERE " . $where;
         }
 
         if (!empty($searchTerm)) {
@@ -202,7 +193,6 @@ class Asset
         }
 
         $query = $this->generic_read_query(
-            $prefilter,
             $where
         ) . "
             LIMIT ?, ?";
@@ -244,7 +234,7 @@ class Asset
     public function searchUpsert()
     {
         $where = "HAVING number=:number AND order_=:order";
-        $query = $this->generic_read_query("", $where);
+        $query = $this->generic_read_query($where);
 
         $stmt = $this->conn->prepare($query);
 
