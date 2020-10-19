@@ -30,6 +30,8 @@ class Asset
 
     public $error;
 
+
+
     // constructor with $db as database connection
     public function __construct($db)
     {
@@ -117,6 +119,10 @@ class Asset
       ";
     }
 
+    private function getTagFiltering($collection, $negation="") {
+      return "LOWER(".$collection.") ".$negation." LIKE CONCAT('%\"', ?, '\"%')";
+    }
+
     public function read()
     {
         $stmt = $this->conn->prepare($this->generic_read_query());
@@ -143,15 +149,17 @@ class Asset
         $prefilter = "";
         $where = "";
 
+
         if (count($showProducts) > 0) {
             $extension = implode(' AND
-              ', array_fill(0, count($showProducts), "LOWER(products) LIKE CONCAT('%', ?, '%')"));
+              ', array_fill(0, count($showProducts), $this->getTagFiltering("products"))
+            );
             $where = $where . "
             ". $extension;
         }
         if (count($hideProducts) > 0) {
             $extension = implode(' AND
-              ', array_fill(0, count($hideProducts), "LOWER(products) NOT LIKE CONCAT('%', ?, '%')")
+              ', array_fill(0, count($hideProducts), $this->getTagFiltering("products", "NOT"))
             );
 
             if (!empty($where)) {
@@ -163,7 +171,7 @@ class Asset
 
         if (count($showTags) > 0) {
             $extension = implode(' AND
-              ', array_fill(0, count($showTags), "LOWER(tags) LIKE CONCAT('%', ?, '%')")
+              ', array_fill(0, count($showTags), $this->getTagFiltering("tags"))
             );
 
             if (!empty($where)) {
@@ -174,7 +182,7 @@ class Asset
         }
         if (count($hideTags) > 0) {
             $extension = implode(' AND
-              ', array_fill(0, count($hideTags), "LOWER(tags) NOT LIKE CONCAT('%', ?, '%')")
+              ', array_fill(0, count($hideTags), $this->getTagFiltering("tags", "NOT"))
             );
 
             if (!empty($where)) {
